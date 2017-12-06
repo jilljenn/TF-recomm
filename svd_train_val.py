@@ -11,16 +11,17 @@ import ops
 
 np.random.seed(13575)
 
-BATCH_SIZE = 1000
-USER_NUM = 6040
-ITEM_NUM = 3952
+BATCH_SIZE = 100
+USER_NUM = 536 #6040
+ITEM_NUM = 20 #3952
 DIM = 15
 EPOCH_MAX = 100
 DEVICE = "/cpu:0"
 
 
 def clip(x):
-    return np.clip(x, 1.0, 5.0)
+    return x
+    #return np.clip(x, 1.0, 5.0)
 
 
 def make_scalar_summary(name, val):
@@ -28,7 +29,8 @@ def make_scalar_summary(name, val):
 
 
 def get_data():
-    df = dataio.read_process("/tmp/movielens/ml-1m/ratings.dat", sep="::")
+    #df = dataio.read_process("/tmp/movielens/ml-1m/ratings.dat", sep="::")
+    df = dataio.read_process("/tmp/fraction.dat", sep="::")
     rows = len(df)
     df = df.iloc[np.random.permutation(rows)].reset_index(drop=True)
     split_index = int(rows * 0.9)

@@ -27,7 +27,8 @@ def optimization(infer, regularizer, rate_batch, learning_rate=0.001, reg=0.1, d
     global_step = tf.train.get_global_step()
     assert global_step is not None
     with tf.device(device):
-        cost_l2 = tf.nn.l2_loss(tf.subtract(infer, rate_batch))
+        #cost_l2 = tf.nn.l2_loss(tf.subtract(infer, rate_batch))
+        cost_l2 = tf.nn.sigmoid_cross_entropy_with_logits(labels=rate_batch, logits=infer)
         penalty = tf.constant(reg, dtype=tf.float32, shape=[], name="l2")
         cost = tf.add(cost_l2, tf.multiply(regularizer, penalty))
         train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
