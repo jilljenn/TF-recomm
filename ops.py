@@ -19,17 +19,22 @@ def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cp
         infer = tf.add(infer, bias_global)
         infer = tf.add(infer, bias_user)
         infer = tf.add(infer, bias_item, name="svd_inference")
-        regularizer = tf.add(tf.nn.l2_loss(embd_user), tf.nn.l2_loss(embd_item), name="svd_regularizer")
+        l2_user = tf.nn.l2_loss(embd_user)
+        l1_user = tf.reduce_mean(tf.abs(embd_user))
+        l2_item = tf.nn.l2_loss(embd_item)
+        l1_item = tf.reduce_mean(tf.abs(embd_item))
+        regularizer = tf.add(l1_user, l1_item, name="svd_regularizer")
     return infer, regularizer
 
 
-def optimization(infer, regularizer, rate_batch, learning_rate=0.001, reg=0.1, device="/cpu:0"):
+def optimization(infer, regularizer, rate_batch, learning_rate, reg, device="/cpu:0"):
     global_step = tf.train.get_global_step()
     assert global_step is not None
     with tf.device(device):
         #cost_l2 = tf.nn.l2_loss(tf.subtract(infer, rate_batch))
-        cost_l2 = tf.nn.sigmoid_cross_entropy_with_logits(labels=rate_batch, logits=infer)
+        cost_nll = tf.nn.sigmoid_cross_entropy_with_logits(labels=rate_batch, logits=infer)
+        auc, update_op = tf.metrics.auc(rate_batch, tf.sigmoid(infer))
         penalty = tf.constant(reg, dtype=tf.float32, shape=[], name="l2")
-        cost = tf.add(cost_l2, tf.multiply(regularizer, penalty))
+        cost = tf.add(cost_nll, tf.multiply(regularizer, penalty))
         train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
-    return cost, train_op
+    return cost_nll, auc, update_op, train_op
