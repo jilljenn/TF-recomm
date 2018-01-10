@@ -12,15 +12,16 @@ import ops
 
 np.random.seed(13575)
 
-BATCH_SIZE = 100000
+BATCH_SIZE = 306000
 USER_NUM = 2129 #536 #6040
 ITEM_NUM = 11399 #20 #3952
 DIM = 20  # 15
-EPOCH_MAX = 1000
+EPOCH_MAX = 500
 DEVICE = "/cpu:0"
 LEARNING_RATE = 0.01
-LAMBDA_REG = 0.01
+LAMBDA_REG = 0.1
 DISCRETE = False
+PREFIX = '' + 'normalized_'
 
 
 def clip(x):
@@ -45,8 +46,8 @@ def get_data():
     # split_index = int(rows * 0.8)
     # df_train = df[0:split_index]
     # df_test = df[split_index:].reset_index(drop=True)
-    df_train = dataio.read_process("/tmp/train.dat", sep=",")
-    df_test = dataio.read_process("/tmp/test.dat", sep=",")
+    df_train = dataio.read_process("/tmp/%strain.dat" % PREFIX, sep=",")
+    df_test = dataio.read_process("/tmp/%stest.dat" % PREFIX, sep=",")
     return df_train, df_test
 
 
