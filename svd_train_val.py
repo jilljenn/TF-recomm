@@ -12,14 +12,15 @@ import ops
 
 np.random.seed(13575)
 
-BATCH_SIZE = 4000
-USER_NUM = 536 #6040
-ITEM_NUM = 20 #3952
-DIM = 0  # 15
+BATCH_SIZE = 100000
+USER_NUM = 2129 #536 #6040
+ITEM_NUM = 11399 #20 #3952
+DIM = 20  # 15
 EPOCH_MAX = 1000
 DEVICE = "/cpu:0"
-LEARNING_RATE = 0.001
-LAMBDA_REG = 0.0
+LEARNING_RATE = 0.01
+LAMBDA_REG = 0.01
+DISCRETE = False
 
 
 def clip(x):
@@ -44,8 +45,8 @@ def get_data():
     # split_index = int(rows * 0.8)
     # df_train = df[0:split_index]
     # df_test = df[split_index:].reset_index(drop=True)
-    df_train = dataio.read_process("/tmp/train.dat", sep="::")
-    df_test = dataio.read_process("/tmp/test.dat", sep="::")
+    df_train = dataio.read_process("/tmp/train.dat", sep=",")
+    df_test = dataio.read_process("/tmp/test.dat", sep=",")
     return df_train, df_test
 
 
@@ -69,7 +70,7 @@ def svd(train, test):
     infer, regularizer = ops.inference_svd(user_batch, item_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM,
                                            device=DEVICE)
     global_step = tf.train.get_or_create_global_step()
-    cost_nll, auc, update_op, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
+    cost_l2, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
 
     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
     with tf.Session() as sess:
@@ -83,14 +84,21 @@ def svd(train, test):
         start = time.time()
         for i in range(EPOCH_MAX * nb_batches):
             train_users, train_items, train_rates = next(iter_train)
+            batch_size = len(train_rates)
             _, train_pred_batch = sess.run([train_op, infer], feed_dict={user_batch: train_users, item_batch: train_items, rate_batch: train_rates})
-            nll_batch = sess.run(cost_nll, feed_dict={rate_batch: train_rates, infer: train_pred_batch})
-            #pred_batch = clip(pred_batch)
-            proba_batch = sigmoid(train_pred_batch)
-            train_se.append(np.power(proba_batch - train_rates, 2))
-            train_acc.append(np.round(proba_batch) == train_rates)
-            train_auc.append(roc_auc_score(train_rates, proba_batch))
-            train_nll.append(nll_batch)
+
+            if DISCRETE:
+                nll_batch = sess.run(cost_nll, feed_dict={rate_batch: train_rates, infer: train_pred_batch})
+                proba_batch = sigmoid(train_pred_batch)
+                train_acc.append(np.round(proba_batch) == train_rates)
+                train_auc.append(roc_auc_score(train_rates, proba_batch))
+                train_nll.append(nll_batch)
+            else:
+                l2_batch = sess.run(cost_l2, feed_dict={rate_batch: train_rates, infer: train_pred_batch})
+                #print('est-ce', np.sum(np.power(train_rates - train_pred_batch, 2)))
+                #print('que = ', l2_batch)
+                #train_se.append(np.power(l2_batch, 2))
+                train_se.append(np.power(train_rates - train_pred_batch, 2))
             if i % nb_batches == 0:
                 train_rmse = np.sqrt(np.mean(train_se))
                 train_macc = np.mean(train_acc)
@@ -102,27 +110,32 @@ def svd(train, test):
                 test_nll = []
                 for users, items, rates in iter_test:
                     pred_batch = sess.run(infer, feed_dict={user_batch: users, item_batch: items})
-                    proba_batch = sigmoid(pred_batch)
-                    #print(proba_batch[42:47])
+                    test_size = len(rates)
+                    #print(pred_batch[42:47])
                     #print(rates[42:47])
-                    nll_batch, auc_batch, _ = sess.run([cost_nll, auc, update_op], feed_dict={rate_batch: rates, infer: pred_batch})
-                    test_se.append(np.power(proba_batch - rates, 2))
-                    test_acc.append(np.round(proba_batch) == rates)
-                    test_auc.append(auc_batch)
-                    test_nll.append(nll_batch)
+                    if DISCRETE:
+                        nll_batch, auc_batch, _ = sess.run([cost_nll, auc, update_op], feed_dict={rate_batch: rates, infer: pred_batch})
+                        proba_batch = sigmoid(pred_batch)
+                        test_acc.append(np.round(proba_batch) == rates)
+                        test_auc.append(auc_batch)
+                        test_nll.append(nll_batch)
+                    else:
+                        l2_batch = sess.run(cost_l2, feed_dict={rate_batch: rates, infer: pred_batch})
+                        test_se.append(np.power(rates - pred_batch, 2))
+
                 end = time.time()
                 test_rmse = np.sqrt(np.mean(test_se))
                 test_macc = np.mean(test_acc)
                 test_mauc = np.mean(test_auc)
                 test_mnll = np.mean(test_nll)
-                print("{:3d} TRAIN(size={:d}/{:d}, macc={:f} mauc={:f} mnll={:f}) TEST(size={:d}, macc={:f} mauc={:f} mnll={:f}) {:f}(s)".format(
+                print("{:3d} TRAIN(size={:d}/{:d}, rmse={:f}) TEST(size={:d}, rmse={:f}) {:f}(s)".format(
                     i // nb_batches,
                     len(train_users), len(train),
-                    #train_rmse, # rmse={:f} 
-                    train_macc, train_mauc, train_mnll,
-                    #test_rmse, # rmse={:f} 
+                    train_rmse, # rmse={:f} 
+                    #train_macc, train_mauc, train_mnll,
                     len(test),
-                    test_macc, test_mauc, test_mnll,
+                    test_rmse, # rmse={:f} 
+                    #test_macc, test_mauc, test_mnll,
                     end - start))
                 train_err_summary = make_scalar_summary("training_error", train_rmse)
                 test_err_summary = make_scalar_summary("test_error", test_rmse)

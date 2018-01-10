@@ -4,10 +4,10 @@ import pandas as pd
 
 
 def read_process(filname, sep="\t"):
-    col_names = ["user", "item", "rate", "st"]
+    col_names = ["user", "item", "rate"]
     df = pd.read_csv(filname, sep=sep, header=None, names=col_names, engine='python')
-    df["user"] -= 1
-    df["item"] -= 1
+    df["user"]# -= 1
+    df["item"]# -= 1
     for col in ("user", "item"):
         df[col] = df[col].astype(np.int32)
     df["rate"] = df["rate"].astype(np.float32)
