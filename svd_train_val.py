@@ -1,5 +1,5 @@
 import time
-from collections import deque
+from collections import deque, Counter
 
 import numpy as np
 import tensorflow as tf
@@ -12,16 +12,16 @@ import ops
 
 np.random.seed(13575)
 
-BATCH_SIZE = 306000
-USER_NUM = 2129 #536 #6040
-ITEM_NUM = 11399 #20 #3952
-DIM = 20  # 15
+BATCH_SIZE = 10000
+USER_NUM = 6040 #2129 #536 #6040
+ITEM_NUM = 3952 #11399 #20 #3952
+DIM = 8 #20  # 15
 EPOCH_MAX = 500
 DEVICE = "/cpu:0"
 LEARNING_RATE = 0.01
-LAMBDA_REG = 0.1
-DISCRETE = False
-PREFIX = '' + 'normalized_'
+LAMBDA_REG = 0#.1
+DISCRETE = True
+PREFIX = '' # + 'normalized_'
 
 
 def clip(x):
@@ -40,7 +40,7 @@ def make_scalar_summary(name, val):
 
 def get_data():
     # df = dataio.read_process("/tmp/movielens/ml-1m/ratings.dat", sep="::")
-    # df = dataio.read_process("/tmp/fraction.dat", sep="::")
+    # df = dataio.read_process("/tmp/berkeley.dat", sep="::")
     # rows = len(df)
     # df = df.iloc[np.random.permutation(rows)].reset_index(drop=True)
     # split_index = int(rows * 0.8)
@@ -71,7 +71,8 @@ def svd(train, test):
     infer, regularizer = ops.inference_svd(user_batch, item_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM,
                                            device=DEVICE)
     global_step = tf.train.get_or_create_global_step()
-    cost_l2, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
+    #cost_l2, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
+    cost_nll, auc, update_op, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
 
     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
     with tf.Session() as sess:
@@ -129,15 +130,26 @@ def svd(train, test):
                 test_macc = np.mean(test_acc)
                 test_mauc = np.mean(test_auc)
                 test_mnll = np.mean(test_nll)
-                print("{:3d} TRAIN(size={:d}/{:d}, rmse={:f}) TEST(size={:d}, rmse={:f}) {:f}(s)".format(
-                    i // nb_batches,
-                    len(train_users), len(train),
-                    train_rmse, # rmse={:f} 
-                    #train_macc, train_mauc, train_mnll,
-                    len(test),
-                    test_rmse, # rmse={:f} 
-                    #test_macc, test_mauc, test_mnll,
-                    end - start))
+                if DISCRETE:
+                    print("{:3d} TRAIN(size={:d}/{:d}, macc={:f}, mauc={:f}, mnll={:f}) TEST(size={:d}, macc={:f}, mauc={:f}, mnll={:f}) {:f}(s)".format(
+                        i // nb_batches,
+                        len(train_users), len(train),
+                        #train_rmse, # rmse={:f} 
+                        train_macc, train_mauc, train_mnll,
+                        len(test),
+                        #test_rmse, # rmse={:f} 
+                        test_macc, test_mauc, test_mnll,
+                        end - start))
+                else:
+                    print("{:3d} TRAIN(size={:d}/{:d}, rmse={:f}) TEST(size={:d}, rmse={:f}) {:f}(s)".format(
+                        i // nb_batches,
+                        len(train_users), len(train),
+                        train_rmse, # rmse={:f} 
+                        #train_macc, train_mauc, train_mnll,
+                        len(test),
+                        test_rmse, # rmse={:f} 
+                        #test_macc, test_mauc, test_mnll,
+                        end - start))
                 train_err_summary = make_scalar_summary("training_error", train_rmse)
                 test_err_summary = make_scalar_summary("test_error", test_rmse)
                 summary_writer.add_summary(train_err_summary, i)
@@ -147,5 +159,8 @@ def svd(train, test):
 
 if __name__ == '__main__':
     df_train, df_test = get_data()
+    print('Train', df_train.shape)
+    print(df_train.tail())
+    print('Test', df_test.shape)
     svd(df_train, df_test)
     print("Done!")
