@@ -22,6 +22,7 @@ LEARNING_RATE = 0.01
 LAMBDA_REG = 0#.1
 DISCRETE = True
 PREFIX = '' # + 'normalized_'
+NB_CLASSES = 6
 
 
 def clip(x):
@@ -46,8 +47,8 @@ def get_data():
     # split_index = int(rows * 0.8)
     # df_train = df[0:split_index]
     # df_test = df[split_index:].reset_index(drop=True)
-    df_train = dataio.read_process("/tmp/%strain.dat" % PREFIX, sep=",")
-    df_test = dataio.read_process("/tmp/%stest.dat" % PREFIX, sep=",")
+    df_train = dataio.read_process("/tmp/%strain.csv" % PREFIX, sep=",")
+    df_test = dataio.read_process("/tmp/%stest.csv" % PREFIX, sep=",")
     return df_train, df_test
 
 
@@ -68,11 +69,12 @@ def svd(train, test):
     item_batch = tf.placeholder(tf.int32, shape=[None], name="id_item")
     rate_batch = tf.placeholder(tf.float32, shape=[None])
 
-    infer, regularizer = ops.inference_svd(user_batch, item_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM,
+    infer, regularizer, thresholds = ops.inference_svd(user_batch, item_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM,
                                            device=DEVICE)
     global_step = tf.train.get_or_create_global_step()
     #cost_l2, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
-    cost_nll, auc, update_op, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
+    #cost_nll, auc, update_op, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
+    cost_at, auc, update_op, train_op = ops.optimization(infer, regularizer, rate_batch, thresholds, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
 
     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
     with tf.Session() as sess:
@@ -81,6 +83,7 @@ def svd(train, test):
         print("{} {} {} {}".format("epoch", "train_error", "val_error", "elapsed_time"))
         train_se = deque(maxlen=nb_batches)
         train_nll = deque(maxlen=nb_batches)
+        train_cost = deque(maxlen=nb_batches)
         train_acc = deque(maxlen=nb_batches)
         train_auc = deque(maxlen=nb_batches)
         start = time.time()
@@ -90,11 +93,15 @@ def svd(train, test):
             _, train_pred_batch = sess.run([train_op, infer], feed_dict={user_batch: train_users, item_batch: train_items, rate_batch: train_rates})
 
             if DISCRETE:
-                nll_batch = sess.run(cost_nll, feed_dict={rate_batch: train_rates, infer: train_pred_batch})
-                proba_batch = sigmoid(train_pred_batch)
-                train_acc.append(np.round(proba_batch) == train_rates)
-                train_auc.append(roc_auc_score(train_rates, proba_batch))
-                train_nll.append(nll_batch)
+                if NB_CLASSES > 2:
+                    cost_batch = sess.run(cost_at, feed_dict={rate_batch: train_rates, infer: train_pred_batch})
+                    train_cost.append(cost_batch)
+                else:
+                    nll_batch = sess.run(cost_nll, feed_dict={rate_batch: train_rates, infer: train_pred_batch})
+                    proba_batch = sigmoid(train_pred_batch)
+                    train_acc.append(np.round(proba_batch) == train_rates)
+                    train_auc.append(roc_auc_score(train_rates, proba_batch))
+                    train_nll.append(nll_batch)
             else:
                 l2_batch = sess.run(cost_l2, feed_dict={rate_batch: train_rates, infer: train_pred_batch})
                 #print('est-ce', np.sum(np.power(train_rates - train_pred_batch, 2)))
@@ -102,25 +109,33 @@ def svd(train, test):
                 #train_se.append(np.power(l2_batch, 2))
                 train_se.append(np.power(train_rates - train_pred_batch, 2))
             if i % nb_batches == 0:
+                # Compute test error
                 train_rmse = np.sqrt(np.mean(train_se))
                 train_macc = np.mean(train_acc)
                 train_mauc = np.mean(train_auc)
                 train_mnll = np.mean(train_nll)
+                train_mcost = np.mean(train_cost)
                 test_se = []
                 test_acc = []
                 test_auc = []
                 test_nll = []
+                test_cost = []
                 for users, items, rates in iter_test:
                     pred_batch = sess.run(infer, feed_dict={user_batch: users, item_batch: items})
                     test_size = len(rates)
                     #print(pred_batch[42:47])
                     #print(rates[42:47])
                     if DISCRETE:
-                        nll_batch, auc_batch, _ = sess.run([cost_nll, auc, update_op], feed_dict={rate_batch: rates, infer: pred_batch})
-                        proba_batch = sigmoid(pred_batch)
-                        test_acc.append(np.round(proba_batch) == rates)
-                        test_auc.append(auc_batch)
-                        test_nll.append(nll_batch)
+                        if NB_CLASSES > 2:
+                            cost_batch = sess.run(cost_at, feed_dict={rate_batch: rates, infer: pred_batch})
+                            test_cost.append(cost_batch)
+                        else:
+                            train_cost.append(cost_batch)
+                            nll_batch, auc_batch, _ = sess.run([cost_nll, auc, update_op], feed_dict={rate_batch: rates, infer: pred_batch})
+                            proba_batch = sigmoid(pred_batch)
+                            test_acc.append(np.round(proba_batch) == rates)
+                            test_auc.append(auc_batch)
+                            test_nll.append(nll_batch)
                     else:
                         l2_batch = sess.run(cost_l2, feed_dict={rate_batch: rates, infer: pred_batch})
                         test_se.append(np.power(rates - pred_batch, 2))
@@ -131,15 +146,24 @@ def svd(train, test):
                 test_mauc = np.mean(test_auc)
                 test_mnll = np.mean(test_nll)
                 if DISCRETE:
-                    print("{:3d} TRAIN(size={:d}/{:d}, macc={:f}, mauc={:f}, mnll={:f}) TEST(size={:d}, macc={:f}, mauc={:f}, mnll={:f}) {:f}(s)".format(
-                        i // nb_batches,
-                        len(train_users), len(train),
-                        #train_rmse, # rmse={:f} 
-                        train_macc, train_mauc, train_mnll,
-                        len(test),
-                        #test_rmse, # rmse={:f} 
-                        test_macc, test_mauc, test_mnll,
-                        end - start))
+                    if NB_CLASSES > 2:
+                            print("{:3d} TRAIN(size={:d}/{:d}, mcost={:f}) TEST(size={:d}, mcost={:f}) {:f}(s)".format(
+                            i // nb_batches,
+                            len(train_users), len(train),
+                            train_cost,
+                            len(test),
+                            test_cost,
+                            end - start))
+                    else:
+                        print("{:3d} TRAIN(size={:d}/{:d}, macc={:f}, mauc={:f}, mnll={:f}) TEST(size={:d}, macc={:f}, mauc={:f}, mnll={:f}) {:f}(s)".format(
+                            i // nb_batches,
+                            len(train_users), len(train),
+                            #train_rmse, # rmse={:f} 
+                            train_macc, train_mauc, train_mnll,
+                            len(test),
+                            #test_rmse, # rmse={:f} 
+                            test_macc, test_mauc, test_mnll,
+                            end - start))
                 else:
                     print("{:3d} TRAIN(size={:d}/{:d}, rmse={:f}) TEST(size={:d}, rmse={:f}) {:f}(s)".format(
                         i // nb_batches,
