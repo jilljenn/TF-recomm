@@ -12,7 +12,7 @@ def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cp
                                  initializer=tf.truncated_normal_initializer(stddev=0.02))
         #w_bias_item = tf.get_variable("embd_bias_item", shape=[item_num])
         bias_user = tf.nn.embedding_lookup(w_bias_user, user_batch, name="bias_user")
-        bias_item = tf.nn.embedding_lookup(w_bias_user, item_batch, name="bias_item")
+        bias_item = tf.nn.embedding_lookup(w_bias_user, user_num + item_batch, name="bias_item")
         thresholds_item = tf.nn.embedding_lookup(thresholds, item_batch, name="thr_item")
         #w_item = tf.get_variable("embd_item", shape=[item_num, dim],
         #                         initializer=tf.truncated_normal_initializer(stddev=0.02))
@@ -36,10 +36,9 @@ def logloss(x):
 
 
 def all_thresholds(labels, logits, thresholds):
-    batch_size = tf.size(labels)
-    sgn = np.fromfunction(lambda i, j: 2 * (1 + j < labels[i]) - 1, (batch_size, NB_CLASSES - 1), dtype=int)
-    delta = tf.matmul(tf.reshape(logits, (batch_size, 1)), tf.ones([1, NB_CLASSES - 1])) - thresholds
-    return tf.reduce_sum(logloss(sgn * delta), axis=1)
+    signs = tf.sign(2 * (tf.range(NB_CLASSES, dtype=tf.float32) - labels[:, None]) + 1)
+    delta = logits[:, None] - thresholds
+    return tf.reduce_sum(logloss(signs * delta), axis=1)
 
 
 def optimization(infer, regularizer, rate_batch, thresholds, learning_rate, reg, device="/cpu:0"):
@@ -52,7 +51,8 @@ def optimization(infer, regularizer, rate_batch, thresholds, learning_rate, reg,
         auc, update_op = tf.metrics.auc(rate_batch, tf.sigmoid(infer))
         penalty = tf.constant(reg, dtype=tf.float32, shape=[], name="l2")
         #cost = tf.add(cost_l2, tf.multiply(regularizer, penalty))
-        cost = tf.add(cost_nll, tf.multiply(regularizer, penalty))
+        #cost = tf.add(cost_nll, tf.multiply(regularizer, penalty))
+        cost = tf.add(cost_at, tf.multiply(regularizer, penalty))
         train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
     #return cost_l2, train_op  # If not discrete
     return cost_at, auc, update_op, train_op

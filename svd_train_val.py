@@ -12,14 +12,14 @@ import ops
 
 np.random.seed(13575)
 
-BATCH_SIZE = 10000
-USER_NUM = 6040 #2129 #536 #6040
-ITEM_NUM = 3952 #11399 #20 #3952
+BATCH_SIZE = 277487
+USER_NUM = 2140 #536 #6040
+ITEM_NUM = 11653 #20 #3952
 DIM = 8 #20  # 15
 EPOCH_MAX = 500
 DEVICE = "/cpu:0"
 LEARNING_RATE = 0.01
-LAMBDA_REG = 0#.1
+LAMBDA_REG = 0.1
 DISCRETE = True
 PREFIX = '' # + 'normalized_'
 NB_CLASSES = 6
@@ -94,7 +94,7 @@ def svd(train, test):
 
             if DISCRETE:
                 if NB_CLASSES > 2:
-                    cost_batch = sess.run(cost_at, feed_dict={rate_batch: train_rates, infer: train_pred_batch})
+                    cost_batch = sess.run(cost_at, feed_dict={rate_batch: train_rates, item_batch: train_items, infer: train_pred_batch})
                     train_cost.append(cost_batch)
                 else:
                     nll_batch = sess.run(cost_nll, feed_dict={rate_batch: train_rates, infer: train_pred_batch})
@@ -127,10 +127,10 @@ def svd(train, test):
                     #print(rates[42:47])
                     if DISCRETE:
                         if NB_CLASSES > 2:
-                            cost_batch = sess.run(cost_at, feed_dict={rate_batch: rates, infer: pred_batch})
+                            cost_batch = sess.run(cost_at, feed_dict={rate_batch: rates, item_batch: items, infer: pred_batch})
                             test_cost.append(cost_batch)
                         else:
-                            train_cost.append(cost_batch)
+                            #train_cost.append(cost_batch)
                             nll_batch, auc_batch, _ = sess.run([cost_nll, auc, update_op], feed_dict={rate_batch: rates, infer: pred_batch})
                             proba_batch = sigmoid(pred_batch)
                             test_acc.append(np.round(proba_batch) == rates)
@@ -145,14 +145,15 @@ def svd(train, test):
                 test_macc = np.mean(test_acc)
                 test_mauc = np.mean(test_auc)
                 test_mnll = np.mean(test_nll)
+                test_mcost = np.mean(test_cost)
                 if DISCRETE:
                     if NB_CLASSES > 2:
                             print("{:3d} TRAIN(size={:d}/{:d}, mcost={:f}) TEST(size={:d}, mcost={:f}) {:f}(s)".format(
                             i // nb_batches,
                             len(train_users), len(train),
-                            train_cost,
+                            train_mcost,
                             len(test),
-                            test_cost,
+                            test_mcost,
                             end - start))
                     else:
                         print("{:3d} TRAIN(size={:d}/{:d}, macc={:f}, mauc={:f}, mnll={:f}) TEST(size={:d}, macc={:f}, mauc={:f}, mnll={:f}) {:f}(s)".format(
