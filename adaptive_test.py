@@ -8,7 +8,7 @@ from cats import Random, Fisher, Fisher2
 import time
 import ops
 
-LEARNING_RATE = 1
+LEARNING_RATE = 5 * 1e-3
 EPOCH_MAX = 300
 BUDGET = 10
 LAMBDA_REG = 0.
@@ -46,7 +46,7 @@ with tf.Session() as sess:
     train_items = []
     train_rates = []
 
-    cat = Fisher(test_items)
+    cat = Fisher2(test_items)
     for b in range(BUDGET):
 
         train_logits_cdf, train_infer, train_pdf, train_item_bias = sess.run(

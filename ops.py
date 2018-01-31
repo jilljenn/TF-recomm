@@ -101,11 +101,11 @@ def optimization(infer, logits_cdf, regularizer, rate_batch, learning_rate, reg,
         #print(cost)
         
         if var_list is None:
-            train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
-            # train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
+            # train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
+            train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
         else:
-            train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)
-            # train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)
+            # train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)
+            train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)
         # else:
         #     train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
     #return cost_l2, train_op  # If not discrete
