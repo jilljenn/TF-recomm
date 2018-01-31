@@ -14,6 +14,13 @@ def read_process(filname, sep="\t"):
     return df
 
 
+def get_data():
+    df_train = read_process("/tmp/train.csv", sep=",")
+    df_val = read_process("/tmp/val.csv", sep=",")
+    df_test = read_process("/tmp/test.csv", sep=",")
+    return df_train, df_val, df_test
+
+
 class ShuffleIterator(object):
     """
     Randomly generate batches
