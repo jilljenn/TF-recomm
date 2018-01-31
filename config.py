@@ -14,7 +14,7 @@ DIM = 1
 EPOCH_MAX = 150
 # LEARNING_RATE = 1 * 1e-3  # If dim == 0
 LEARNING_RATE = 1  # If Adam
-LAMBDA_REG = 0.1
+LAMBDA_REG = 0.
 DISCRETE = True
 
 DEVICE = "/cpu:0"

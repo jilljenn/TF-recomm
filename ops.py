@@ -53,7 +53,11 @@ def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cp
         l2_bias_item = tf.nn.l2_loss(bias_items)
         #regularizer = tf.add(regularizer, l2_bias_user)
         regularizer = tf.add(regularizer, l2_bias_item, name="svd_regularizer")
-    return infer, logits_cdf, pdf, regularizer, user_bias, user_features
+    return infer, logits_cdf, pdf, regularizer, user_bias, user_features, item_bias
+
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
 
 
 def logloss(x):
@@ -72,7 +76,7 @@ def all_thresholds(labels, logits, thresholds):
     return tf.reduce_sum(logloss(signs * delta), axis=1)
 
 
-def optimization(infer, logits_cdf, logits_pdf, regularizer, rate_batch, learning_rate, reg, device="/cpu:0", var_list=None):
+def optimization(infer, logits_cdf, regularizer, rate_batch, learning_rate, reg, device="/cpu:0", var_list=None):
     global_step = tf.train.get_global_step()
     assert global_step is not None
     with tf.device(device):
