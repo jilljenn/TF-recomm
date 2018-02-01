@@ -8,12 +8,12 @@ from cats import Random, Fisher, FisherM
 import time
 import ops
 
-LEARNING_RATE = 0.1 #5 * 1e-3
-EPOCH_MAX = 1
-BUDGET = 10
+LEARNING_RATE = 5 * 1e-3
+EPOCH_MAX = 300
+BUDGET = 5
 LAMBDA_REG = 0.
-ASK_EVERYTHING = True
-LOG_STEP = 1
+ASK_EVERYTHING = False
+LOG_STEP = 300
 
 user_batch = tf.placeholder(tf.int32, shape=[None], name="id_user")
 item_batch = tf.placeholder(tf.int32, shape=[None], name="id_item")
@@ -60,7 +60,7 @@ with tf.Session() as sess:
             train_items = test_items
             train_rates = test_rates
 
-        cat = Random(test_items)
+        cat = FisherM(test_items)
         for b in range(BUDGET):
 
             train_logits_cdf, train_infer, train_logits_pdf, train_item_bias, train_item_features, train_user_bias, train_user_features, train_thresholds = sess.run(
