@@ -37,7 +37,7 @@ def svd(train, test):
     item_batch = tf.placeholder(tf.int32, shape=[None], name="id_item")
     rate_batch = tf.placeholder(tf.int32, shape=[None])
 
-    infer, logits_cdf, pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds = ops.inference_svd(user_batch, item_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
+    infer, logits, logits_cdf, pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds = ops.inference_svd(user_batch, item_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
     global_step = tf.train.get_or_create_global_step()
     #cost_l2, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
     #cost_nll, auc, update_op, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
@@ -155,13 +155,13 @@ def svd(train, test):
                             len(train_users), len(train),
                             train_macc,
                             train_mobo,
-                            train_mcost,
                             train_rmse,
+                            train_mcost,
                             len(test),
                             test_macc,
                             test_mobo,
-                            test_mcost,
                             test_rmse,
+                            test_mcost,
                             end - start))
                     else:
                         print("{:3d} TRAIN(size={:d}/{:d}, macc={:f}, mauc={:f}, mnll={:f}) TEST(size={:d}, macc={:f}, mauc={:f}, mnll={:f}) {:f}(s)".format(

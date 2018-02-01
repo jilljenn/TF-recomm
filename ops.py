@@ -53,7 +53,7 @@ def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cp
         l2_bias_item = tf.nn.l2_loss(bias_items)
         regularizer = tf.add(regularizer, l2_bias_user)
         regularizer = tf.add(regularizer, l2_bias_item, name="svd_regularizer")
-    return infer, logits_cdf, pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds
+    return infer, logits, logits_cdf, pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds
 
 
 def sigmoid(x):
@@ -101,8 +101,8 @@ def optimization(infer, logits_cdf, regularizer, rate_batch, learning_rate, reg,
         #print(cost)
         
         if var_list is None:
-            # train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
-            train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
+            train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
+            # train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
         else:
             # train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)
             train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)
