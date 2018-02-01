@@ -37,11 +37,11 @@ def svd(train, test):
     item_batch = tf.placeholder(tf.int32, shape=[None], name="id_item")
     rate_batch = tf.placeholder(tf.int32, shape=[None])
 
-    infer, logits, logits_cdf, pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds = ops.inference_svd(user_batch, item_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
+    infer, logits, logits_cdf, logits_pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds = ops.inference_svd(user_batch, item_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
     global_step = tf.train.get_or_create_global_step()
     #cost_l2, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
     #cost_nll, auc, update_op, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
-    cost, train_op = ops.optimization(infer, logits_cdf, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
+    cost, train_op = ops.optimization(infer, logits_cdf, logits_pdf, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
 
     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
     saver = tf.train.Saver()
@@ -123,8 +123,7 @@ def svd(train, test):
                     print(test_rates[42:47])
                     if DISCRETE:
                         if NB_CLASSES > 2:
-                            cost_batch = sess.run(cost, feed_dict={rate_batch: test_rates, item_batch: test_items, user_batch: test_users,
-                                                                   logits_cdf: test_logits_cdf})
+                            cost_batch = sess.run(cost, feed_dict={rate_batch: test_rates, item_batch: test_items, user_batch: test_users})
                             #print(cost_batch)
                             test_cost.append(cost_batch)
                             test_acc.append(test_infer == test_rates)

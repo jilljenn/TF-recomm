@@ -8,7 +8,7 @@ from cats import Random, Fisher, FisherM
 import time
 import ops
 
-LEARNING_RATE = 5 * 1e-3
+LEARNING_RATE = 0.1 #5 * 1e-3
 EPOCH_MAX = 1
 BUDGET = 10
 LAMBDA_REG = 0.
@@ -19,10 +19,10 @@ user_batch = tf.placeholder(tf.int32, shape=[None], name="id_user")
 item_batch = tf.placeholder(tf.int32, shape=[None], name="id_item")
 rate_batch = tf.placeholder(tf.int32, shape=[None])
 
-infer, logits, logits_cdf, pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds = ops.inference_svd(user_batch, item_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
+infer, logits, logits_cdf, logits_pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds = ops.inference_svd(user_batch, item_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
 global_step = tf.train.get_or_create_global_step()
 # Attention: only var_list = embd_user, bias_user
-cost, train_op = ops.optimization(infer, logits_cdf, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE, var_list=[user_bias, user_features])
+cost, train_op = ops.optimization(infer, logits_cdf, logits_pdf, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE, var_list=[user_bias, user_features])
 
 _, _, df_test = dataio.get_data()
 
@@ -63,10 +63,11 @@ with tf.Session() as sess:
         cat = Random(test_items)
         for b in range(BUDGET):
 
-            train_logits_cdf, train_infer, train_pdf, train_item_bias, train_item_features, train_user_bias, train_user_features, train_thresholds = sess.run(
-                [logits_cdf, infer, pdf, item_bias, item_features, user_bias, user_features, thresholds], feed_dict={
+            train_logits_cdf, train_infer, train_logits_pdf, train_item_bias, train_item_features, train_user_bias, train_user_features, train_thresholds = sess.run(
+                [logits_cdf, infer, logits_pdf, item_bias, item_features, user_bias, user_features, thresholds], feed_dict={
                     user_batch: [this_user] * ITEM_NUM, item_batch: range(ITEM_NUM)})
             train_cdf = ops.sigmoid(train_logits_cdf)
+            train_pdf = ops.sigmoid(train_logits_pdf)
 
             cat.update_probas(train_cdf, train_pdf, train_item_bias, train_item_features)
             item_to_ask = cat.next_item()

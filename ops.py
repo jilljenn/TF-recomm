@@ -26,7 +26,7 @@ def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cp
     with tf.device(device):
         logits = tf.reduce_sum(tf.multiply(feat_users, feat_items), 1)
         #logits = tf.add(logits, bias_global)
-        logits = tf.add(logits, bias_users)
+        #logits = tf.add(logits, bias_users)
         logits = tf.add(logits, bias_items, name="svd_inference")
 
         cumulative_op = tf.constant(np.tri(NB_CLASSES - 1).T, dtype=tf.float32)
@@ -40,7 +40,12 @@ def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cp
         pdf = tf.matmul(cdf, pdf2cdf_A) + pdf2cdf_b
         #logits_pdf = tf.log(pdf / (1 - pdf))
         #test = -logits_cdf + tf.abs(threshold_items)
-        logits_pdf = tf.concat((-logits_cdf[:, 0][:, None], threshold_items - tf.log(tf.exp(logits_cdf) + tf.exp(-logits_cdf + tf.abs(threshold_items) + 2))), 1)
+        h = tf.exp(threshold_items[:, 1:])
+        a = logits_cdf[:, :-1]
+        logits_pdf = tf.concat((-logits_cdf[:, 0][:, None],
+                                # h - tf.log(tf.exp(a) + tf.exp(-a + h) + 2),
+                                tf.log(1 - tf.exp(-h)) - tf.abs(a) - tf.log(tf.exp(-h + tf.minimum(2 * a, 0)) + tf.exp(tf.minimum(-2 * a, 0)) + 2 * tf.exp(-h - tf.abs(a))),
+                                logits_cdf[:, -1][:, None]), 1)
         infer = tf.argmax(pdf, axis=1)
 
         # Regularization
@@ -51,9 +56,9 @@ def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cp
         regularizer = tf.add(l1_user, l1_item)
         l2_bias_user = tf.nn.l2_loss(bias_users)
         l2_bias_item = tf.nn.l2_loss(bias_items)
-        regularizer = tf.add(regularizer, l2_bias_user)
-        regularizer = tf.add(regularizer, l2_bias_item, name="svd_regularizer")
-    return infer, logits, logits_cdf, pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds
+        #regularizer = tf.add(regularizer, l2_bias_user)
+        #regularizer = tf.add(regularizer, l2_bias_item, name="svd_regularizer")
+    return infer, logits, logits_cdf, logits_pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds
 
 
 def sigmoid(x):
@@ -62,6 +67,10 @@ def sigmoid(x):
 
 def logloss(x):
     return tf.log(1 + tf.exp(-x))
+
+
+def tf_cross_entropy(p, labels_oh):
+    return -tf.reduce_mean(tf.reduce_sum(tf.multiply(labels_oh, tf.log(p)), axis=1))
 
 
 def immediate_thresholds(labels, logits, thresholds):
@@ -76,7 +85,7 @@ def all_thresholds(labels, logits, thresholds):
     return tf.reduce_sum(logloss(signs * delta), axis=1)
 
 
-def optimization(infer, logits_cdf, regularizer, rate_batch, learning_rate, reg, device="/cpu:0", var_list=None):
+def optimization(infer, logits_cdf, logits_pdf, regularizer, rate_batch, learning_rate, reg, device="/cpu:0", var_list=None):
     global_step = tf.train.get_global_step()
     assert global_step is not None
     with tf.device(device):
@@ -91,8 +100,8 @@ def optimization(infer, logits_cdf, regularizer, rate_batch, learning_rate, reg,
         # labels_window = tf.ones([n, 1])
         # logits_cdf_plus = tf.concat((100 * tf.ones([n, 1]), logits_cdf), axis=1)
         # logits_window = tf.gather(logits_cdf_plus, rate_batch, axis=1)
-        cost_ce = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels_cdf, logits=logits_cdf)
-        #cost_ce = tf.nn.softmax_cross_entropy_with_logits(labels=labels_pdf, logits=logits_pdf)
+        #cost_ce = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels_cdf, logits=logits_cdf)
+        cost_ce = tf.nn.softmax_cross_entropy_with_logits(labels=labels_pdf, logits=logits_pdf)
         #auc, update_op = tf.metrics.auc(rate_batch, tf.sigmoid(infer))
         penalty = tf.constant(reg, dtype=tf.float32, shape=[], name="penalty")
         #cost = tf.add(cost_l2, tf.multiply(regularizer, penalty))
@@ -101,8 +110,8 @@ def optimization(infer, logits_cdf, regularizer, rate_batch, learning_rate, reg,
         #print(cost)
         
         if var_list is None:
-            train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
-            # train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
+            # train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
+            train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
         else:
             # train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)
             train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)

@@ -5,16 +5,16 @@ import os.path
 with open('/tmp/config.yml') as f:
     config = yaml.load(f)
 
-BATCH_SIZE = 100000  # config['BATCH_SIZE']
+BATCH_SIZE = 50000 # config['BATCH_SIZE'] # 100000  # config['BATCH_SIZE']
 USER_NUM = config['USER_NUM']
 ITEM_NUM = config['ITEM_NUM']
 NB_CLASSES = config['NB_CLASSES']
 
-DIM = 20
+DIM = 10
 EPOCH_MAX = 200
-#LEARNING_RATE = 5 * 1e-3  # If dim == 0
-LEARNING_RATE = 1  # If Adam
-LAMBDA_REG = 0.
+LEARNING_RATE = 5 * 1e-3  # If dim == 0
+#LEARNING_RATE = 0.1  # If Adam
+LAMBDA_REG = 0.01
 DISCRETE = True
 
 DEVICE = "/cpu:0"
