@@ -48,12 +48,12 @@ def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cp
         l1_user = tf.reduce_mean(tf.abs(feat_users))
         l2_item = tf.nn.l2_loss(feat_items)
         l1_item = tf.reduce_mean(tf.abs(feat_items))
-        regularizer = tf.add(l1_user, l2_item)
+        regularizer = tf.add(l1_user, l1_item)
         l2_bias_user = tf.nn.l2_loss(bias_users)
         l2_bias_item = tf.nn.l2_loss(bias_items)
-        #regularizer = tf.add(regularizer, l2_bias_user)
+        regularizer = tf.add(regularizer, l2_bias_user)
         regularizer = tf.add(regularizer, l2_bias_item, name="svd_regularizer")
-    return infer, logits_cdf, pdf, regularizer, user_bias, user_features, item_bias
+    return infer, logits_cdf, pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds
 
 
 def sigmoid(x):
