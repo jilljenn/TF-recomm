@@ -10,11 +10,11 @@ USER_NUM = config['USER_NUM']
 ITEM_NUM = config['ITEM_NUM']
 NB_CLASSES = config['NB_CLASSES']
 
-DIM = 10
+DIM = 1
 EPOCH_MAX = 200
 LEARNING_RATE = 5 * 1e-3  # If dim == 0
 #LEARNING_RATE = 0.1  # If Adam
-LAMBDA_REG = 0.01
+LAMBDA_REG = 0.
 DISCRETE = True
 
 DEVICE = "/cpu:0"

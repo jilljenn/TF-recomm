@@ -4,13 +4,13 @@ import tensorflow as tf
 import numpy as np
 import os.path
 import dataio
-from cats import Random, Fisher, FisherM
+from cats import Random, Fisher, Popular
 import time
 import ops
 
 LEARNING_RATE = 5 * 1e-3
 EPOCH_MAX = 300
-BUDGET = 5
+BUDGET = 10
 LAMBDA_REG = 0.
 ASK_EVERYTHING = False
 LOG_STEP = 300
@@ -24,7 +24,12 @@ global_step = tf.train.get_or_create_global_step()
 # Attention: only var_list = embd_user, bias_user
 cost, train_op = ops.optimization(infer, logits_cdf, logits_pdf, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE, var_list=[user_bias, user_features])
 
-_, _, df_test = dataio.get_data()
+df_train, _, df_test = dataio.get_data()
+count_work = df_train.groupby('item').size().sort_index()
+work_ids = count_work.index
+work_count = count_work.values
+popularity = np.zeros(len(work_ids))
+popularity[work_ids] = work_count
 
 saver = tf.train.Saver()
 
@@ -60,9 +65,9 @@ with tf.Session() as sess:
             train_items = test_items
             train_rates = test_rates
 
-        cat = FisherM(test_items)
-        for b in range(BUDGET):
+        cat = Popular(test_items, popularity)
 
+        for b in range(BUDGET):
             train_logits_cdf, train_infer, train_logits_pdf, train_item_bias, train_item_features, train_user_bias, train_user_features, train_thresholds = sess.run(
                 [logits_cdf, infer, logits_pdf, item_bias, item_features, user_bias, user_features, thresholds], feed_dict={
                     user_batch: [this_user] * ITEM_NUM, item_batch: range(ITEM_NUM)})
