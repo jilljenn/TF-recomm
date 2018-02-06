@@ -4,13 +4,13 @@ import pandas as pd
 
 
 def read_process(filname, sep="\t"):
-    col_names = ["user", "item", "rate"]
+    col_names = ["user", "item", "outcome", "tries"]
     df = pd.read_csv(filname, sep=sep, header=None, names=col_names, engine='python')
-    df["user"]# -= 1
-    df["item"]# -= 1
-    for col in ("user", "item"):
+    # df["user"] -= 1
+    # df["item"] -= 1
+    for col in {"user", "item"}:
         df[col] = df[col].astype(np.int32)
-    df["rate"] = df["rate"].astype(np.float32)
+    df["outcome"] = df["outcome"].astype(np.float32)
     return df
 
 

@@ -3,7 +3,7 @@ import numpy as np
 from svd_train_val import NB_CLASSES
 
 
-def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cpu:0"):
+def inference_svd(user_batch, item_batch, tries_batch, user_num, item_num, dim=5, device="/cpu:0"):
     with tf.device("/cpu:0"):
         bias_global = tf.get_variable("bias_global", shape=[])
         user_bias = tf.get_variable("user_bias", shape=[user_num],
@@ -13,6 +13,9 @@ def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cp
         bias_users = tf.nn.embedding_lookup(user_bias, user_batch, name="bias_users")
         bias_items = tf.nn.embedding_lookup(item_bias, item_batch, name="bias_items")
 
+        item_bonus = tf.get_variable("item_bonus", shape=[item_num],
+            initializer=tf.truncated_normal_initializer(stddev=1))
+        bonus_items = tf.nn.embedding_lookup(item_bonus, item_batch, name="bonus_items")
         thresholds = tf.get_variable("thresholds", shape=[item_num, NB_CLASSES - 1],
             initializer=tf.truncated_normal_initializer(stddev=1))
         threshold_items = tf.nn.embedding_lookup(thresholds, item_batch, name="thre_items")
@@ -25,9 +28,10 @@ def inference_svd(user_batch, item_batch, user_num, item_num, dim=5, device="/cp
         feat_items = tf.nn.embedding_lookup(item_features, item_batch, name="feat_items")
     with tf.device(device):
         logits = tf.reduce_sum(tf.multiply(feat_users, feat_items), 1)
-        #logits = tf.add(logits, bias_global)
-        #logits = tf.add(logits, bias_users)
-        logits = tf.add(logits, bias_items, name="svd_inference")
+        logits = tf.add(logits, bias_global)
+        logits = tf.add(logits, bias_users)
+        logits = tf.add(logits, bias_items)
+        logits = tf.add(logits, tries_batch * bonus_items, name="svd_inference")
 
         cumulative_op = tf.constant(np.tri(NB_CLASSES - 1).T, dtype=tf.float32)
         pos_threshold_items = tf.matmul(tf.exp(threshold_items), cumulative_op) #- bias_items[:, None]
@@ -85,14 +89,14 @@ def all_thresholds(labels, logits, thresholds):
     return tf.reduce_sum(logloss(signs * delta), axis=1)
 
 
-def optimization(infer, logits_cdf, logits_pdf, regularizer, rate_batch, learning_rate, reg, device="/cpu:0", var_list=None):
+def optimization(infer, logits, logits_cdf, logits_pdf, regularizer, rate_batch, learning_rate, reg, device="/cpu:0", var_list=None):
     global_step = tf.train.get_global_step()
     assert global_step is not None
     with tf.device(device):
         labels_cdf = tf.nn.relu(tf.sign(tf.cast(rate_batch[:, None], tf.float32) + 0.5 - tf.range(1, NB_CLASSES, dtype=tf.float32)))
-        labels_pdf = tf.one_hot(rate_batch, depth=NB_CLASSES)
+        labels_pdf = tf.one_hot(tf.cast(rate_batch, tf.int32), depth=NB_CLASSES)
         #cost_l2 = tf.nn.l2_loss(tf.subtract(infer, rate_batch))
-        #cost_nll = tf.nn.sigmoid_cross_entropy_with_logits(labels=rate_batch, logits=infer)
+        cost_nll = tf.nn.sigmoid_cross_entropy_with_logits(labels=rate_batch, logits=logits)
         #cost_at = immediate_thresholds(labels=rate_batch, logits=logits, thresholds=thresholds)
         #cost_at = all_thresholds(labels=rate_batch, logits=logits, thresholds=thresholds)
         #n = tf.shape(rate_batch)[0]
@@ -102,7 +106,7 @@ def optimization(infer, logits_cdf, logits_pdf, regularizer, rate_batch, learnin
         # logits_window = tf.gather(logits_cdf_plus, rate_batch, axis=1)
         #cost_ce = tf.nn.sigmoid_cross_entropy_with_logits(labels=labels_cdf, logits=logits_cdf)
         cost_ce = tf.nn.softmax_cross_entropy_with_logits(labels=labels_pdf, logits=logits_pdf)
-        #auc, update_op = tf.metrics.auc(rate_batch, tf.sigmoid(infer))
+        auc, update_op = tf.metrics.auc(rate_batch, tf.sigmoid(logits))
         penalty = tf.constant(reg, dtype=tf.float32, shape=[], name="penalty")
         #cost = tf.add(cost_l2, tf.multiply(regularizer, penalty))
         #cost = tf.add(cost_nll, tf.multiply(regularizer, penalty))
@@ -110,13 +114,13 @@ def optimization(infer, logits_cdf, logits_pdf, regularizer, rate_batch, learnin
         #print(cost)
         
         if var_list is None:
-            # train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
-            train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
+            train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
+            # train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
         else:
             # train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)
             train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)
         # else:
         #     train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
     #return cost_l2, train_op  # If not discrete
-    #return cost_nll, auc, update_op, train_op
-    return cost_ce, train_op
+    return cost_nll, auc, update_op, train_op
+    #return cost_ce, train_op
