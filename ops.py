@@ -3,7 +3,7 @@ import numpy as np
 from svd_train_val import NB_CLASSES
 
 
-def inference_svd(user_batch, item_batch, tries_batch, user_num, item_num, dim=5, device="/cpu:0"):
+def inference_svd(user_batch, item_batch, wins_batch, fails_batch, user_num, item_num, dim=5, device="/cpu:0"):
     with tf.device("/cpu:0"):
         bias_global = tf.get_variable("bias_global", shape=[])
         user_bias = tf.get_variable("user_bias", shape=[user_num],
@@ -13,9 +13,13 @@ def inference_svd(user_batch, item_batch, tries_batch, user_num, item_num, dim=5
         bias_users = tf.nn.embedding_lookup(user_bias, user_batch, name="bias_users")
         bias_items = tf.nn.embedding_lookup(item_bias, item_batch, name="bias_items")
 
-        item_bonus = tf.get_variable("item_bonus", shape=[item_num],
+        item_wins = tf.get_variable("item_wins", shape=[item_num],
             initializer=tf.truncated_normal_initializer(stddev=1))
-        bonus_items = tf.nn.embedding_lookup(item_bonus, item_batch, name="bonus_items")
+        item_fails = tf.get_variable("item_fails", shape=[item_num],
+            initializer=tf.truncated_normal_initializer(stddev=1))
+        wins_items = tf.nn.embedding_lookup(item_wins, item_batch, name="wins_items")
+        fails_items = tf.nn.embedding_lookup(item_fails, item_batch, name="fails_items")
+        # For ordinal regression
         thresholds = tf.get_variable("thresholds", shape=[item_num, NB_CLASSES - 1],
             initializer=tf.truncated_normal_initializer(stddev=1))
         threshold_items = tf.nn.embedding_lookup(thresholds, item_batch, name="thre_items")
@@ -24,14 +28,25 @@ def inference_svd(user_batch, item_batch, tries_batch, user_num, item_num, dim=5
                                  initializer=tf.truncated_normal_initializer(stddev=0.02))
         item_features = tf.get_variable("item_features", shape=[item_num, dim],
                                  initializer=tf.truncated_normal_initializer(stddev=0.02))
+        item_wins_features = tf.get_variable("item_wins_features", shape=[item_num, dim],
+                                 initializer=tf.truncated_normal_initializer(stddev=0.02))
+        item_fails_features = tf.get_variable("item_fails_features", shape=[item_num, dim],
+                                 initializer=tf.truncated_normal_initializer(stddev=0.02))
         feat_users = tf.nn.embedding_lookup(user_features, user_batch, name="feat_users")
         feat_items = tf.nn.embedding_lookup(item_features, item_batch, name="feat_items")
+        wins_feat_items = tf.nn.embedding_lookup(item_wins_features, item_batch, name="wins_feat_items")
+        fails_feat_items = tf.nn.embedding_lookup(item_fails_features, item_batch, name="fails_feat_items")
     with tf.device(device):
         logits = tf.reduce_sum(tf.multiply(feat_users, feat_items), 1)
         logits = tf.add(logits, bias_global)
         logits = tf.add(logits, bias_users)
         logits = tf.add(logits, bias_items)
-        logits = tf.add(logits, tries_batch * bonus_items, name="svd_inference")
+        logits = tf.add(logits, wins_batch * wins_items)
+        logits = tf.add(logits, fails_batch * fails_items)
+        bonus_wins = tf.reduce_sum(tf.multiply(wins_feat_items, feat_items), 1)
+        bonus_fails = tf.reduce_sum(tf.multiply(fails_feat_items, feat_items), 1)
+        logits = tf.add(logits, wins_batch * bonus_wins, name="svd_inference")
+        logits = tf.add(logits, fails_batch * bonus_fails, name="svd_inference")
 
         cumulative_op = tf.constant(np.tri(NB_CLASSES - 1).T, dtype=tf.float32)
         pos_threshold_items = tf.matmul(tf.exp(threshold_items), cumulative_op) #- bias_items[:, None]
@@ -57,9 +72,9 @@ def inference_svd(user_batch, item_batch, tries_batch, user_num, item_num, dim=5
         l1_user = tf.reduce_mean(tf.abs(feat_users))
         l2_item = tf.nn.l2_loss(feat_items)
         l1_item = tf.reduce_mean(tf.abs(feat_items))
-        regularizer = tf.add(l1_user, l1_item)
         l2_bias_user = tf.nn.l2_loss(bias_users)
         l2_bias_item = tf.nn.l2_loss(bias_items)
+        regularizer = tf.add(l1_user, l1_item)
         #regularizer = tf.add(regularizer, l2_bias_user)
         #regularizer = tf.add(regularizer, l2_bias_item, name="svd_regularizer")
     return infer, logits, logits_cdf, logits_pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds

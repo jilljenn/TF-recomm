@@ -26,21 +26,24 @@ def svd(train, test):
     iter_train = dataio.ShuffleIterator([train["user"],
                                          train["item"],
                                          train["outcome"],
-                                         train["tries"]],
+                                         train["wins"],
+                                         train["fails"]],
                                         batch_size=BATCH_SIZE)
 
     iter_test = dataio.OneEpochIterator([test["user"],
                                          test["item"],
                                          test["outcome"],
-                                         test["tries"]],
+                                         test["wins"],
+                                         test["fails"]],
                                         batch_size=-1)
 
     user_batch = tf.placeholder(tf.int32, shape=[None], name="id_user")
     item_batch = tf.placeholder(tf.int32, shape=[None], name="id_item")
     rate_batch = tf.placeholder(tf.float32, shape=[None])
-    tries_batch = tf.placeholder(tf.float32, shape=[None], name="nb_tries")
+    wins_batch = tf.placeholder(tf.float32, shape=[None], name="nb_wins")
+    fails_batch = tf.placeholder(tf.float32, shape=[None], name="nb_fails")
 
-    infer, logits, logits_cdf, logits_pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds = ops.inference_svd(user_batch, item_batch, tries_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
+    infer, logits, logits_cdf, logits_pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds = ops.inference_svd(user_batch, item_batch, wins_batch, fails_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
     global_step = tf.train.get_or_create_global_step()
     #cost_l2, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
     cost_nll, auc, update_op, train_op = ops.optimization(infer, logits, logits_cdf, logits_pdf, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
@@ -60,12 +63,12 @@ def svd(train, test):
         train_auc = deque(maxlen=nb_batches)
         start = time.time()
         for i in range(EPOCH_MAX * nb_batches):
-            train_users, train_items, train_rates, train_tries = next(iter_train)
+            train_users, train_items, train_rates, train_wins, train_fails = next(iter_train)
             batch_size = len(train_rates)
 
             _, train_logits, train_logits_cdf, train_infer = sess.run(
                 [train_op, logits, logits_cdf, infer], feed_dict={
-                    user_batch: train_users, item_batch: train_items, rate_batch: train_rates, tries_batch: train_tries})
+                    user_batch: train_users, item_batch: train_items, rate_batch: train_rates, wins_batch: train_wins, fails_batch: train_fails})
             #print('values', train_infer[42], train_logits[42], train_logits_cdf[42], ops.sigmoid(train_logits[42]), ops.sigmoid(train_logits_cdf[42]))
 
             # print(train_logits_cdf[42])
@@ -113,9 +116,9 @@ def svd(train, test):
                 test_auc = []
                 test_nll = []
                 test_cost = []
-                for test_users, test_items, test_rates, test_tries in iter_test:
+                for test_users, test_items, test_rates, test_wins, test_fails in iter_test:
                     test_logits, test_logits_cdf, test_infer = sess.run(
-                        [logits, logits_cdf, infer], feed_dict={user_batch: test_users, item_batch: test_items, tries_batch: test_tries})
+                        [logits, logits_cdf, infer], feed_dict={user_batch: test_users, item_batch: test_items, wins_batch: test_wins, fails_batch: test_fails})
                     test_size = len(test_rates)
 
                     # print(test_logits_cdf[42], test_logits_pdf[42])
