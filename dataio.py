@@ -4,7 +4,8 @@ import pandas as pd
 
 
 def read_process(filname, sep="\t"):
-    col_names = ["user", "item", "outcome", "wins", "fails"]
+    col_names = ["user", "item", "outcome"]
+    # col_names = ["user", "item", "outcome", "wins", "fails"]
     df = pd.read_csv(filname, sep=sep, header=None, names=col_names, engine='python')
     # df["user"] -= 1
     # df["item"] -= 1
