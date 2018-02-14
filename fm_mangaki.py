@@ -31,7 +31,7 @@ X_test = load_npz('X_test.npz')
 print(X_train.shape)
 print(X_test.shape)
 
-fm = pywFM.FM(task='regression', num_iter=1, k2=20, rlog=False, learning_method='mcmc', r1_regularization=0.1, r2_regularization=0.1)
+fm = pywFM.FM(task='regression', num_iter=500, k2=20, rlog=False, learning_method='mcmc', r1_regularization=0.1, r2_regularization=0.1)
 model = fm.run(X_train, df_train['outcome'], X_test, df_test['outcome'])
 print(mean_squared_error(df_test['outcome'], model.predictions) ** 0.5)
 print(X_test[0], df_test['outcome'][0], model.predictions[0])
