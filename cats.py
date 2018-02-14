@@ -4,7 +4,7 @@ import random
 
 
 class CAT:
-    def __init__(self, items, popularity):
+    def __init__(self, items, popularity=None):
         self.available_item_ids = list(items)
         self.asked = []
         self.fisher_history = np.zeros((DIM, DIM))
@@ -47,3 +47,8 @@ class Fisher(CAT):
         self.fisher_history += contestants[best_pos]
         self.asked.append(self.available_item_ids[best_pos])
         return self.available_item_ids.pop(best_pos)
+
+
+class Next(CAT):
+    def next_item(self):
+        return self.available_item_ids.pop(0)

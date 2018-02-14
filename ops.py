@@ -45,7 +45,7 @@ def inference_svd(user_batch, item_batch, wins_batch, fails_batch, user_num, ite
         logits = tf.add(logits, fails_batch * fails_items)
         bonus_wins = tf.reduce_sum(tf.multiply(wins_feat_items, feat_items), 1)
         bonus_fails = tf.reduce_sum(tf.multiply(fails_feat_items, feat_items), 1)
-        logits = tf.add(logits, wins_batch * bonus_wins, name="svd_inference")
+        logits = tf.add(logits, wins_batch * bonus_wins)
         logits = tf.add(logits, fails_batch * bonus_fails, name="svd_inference")
 
         cumulative_op = tf.constant(np.tri(NB_CLASSES - 1).T, dtype=tf.float32)
