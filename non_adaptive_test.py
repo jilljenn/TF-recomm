@@ -1,4 +1,5 @@
 from config import *
+from sklearn.metrics import accuracy_score, roc_auc_score
 from collections import deque, Counter, defaultdict
 import tensorflow as tf
 import numpy as np
@@ -10,9 +11,10 @@ import ops
 
 
 LEARNING_RATE = 5 * 1e-3
-EPOCH_MAX = 300
-LAMBDA_REG = 0
-LOG_STEP = 300
+# LEARNING_RATE = 0.1
+EPOCH_MAX = 100
+LAMBDA_REG = 0.1
+LOG_STEP = 101
 
 
 user_batch = tf.placeholder(tf.int32, shape=[None], name="id_user")
@@ -50,11 +52,13 @@ with tf.Session() as sess:
     train_wins = defaultdict(list)
     train_fails = defaultdict(list)
 
+    all_truth = []
+    all_pred = []
+
     for user_id, item_id, outcome, nb_wins, nb_fails in np.array(df_test):
         if user_id > 3374:
             break
 
-        print()
         print('Welcome', user_id)
 
         train_users[user_id].append(user_id)
@@ -67,7 +71,9 @@ with tf.Session() as sess:
             user_batch: [user_id], item_batch: [item_id], wins_batch: [nb_wins], fails_batch: [nb_fails]})
         item_proba = ops.sigmoid(item_logit)
 
-        print('Asking', item_id, 'predicted', item_proba, 'actually', outcome)
+        all_truth.append(outcome)
+        all_pred.append(item_proba)
+        # print('Asking', item_id, 'predicted', item_proba, 'actually', outcome)
 
         for i in range(1, EPOCH_MAX + 1):
 
@@ -104,3 +110,12 @@ with tf.Session() as sess:
                     train_rmse,
                     train_mcost,
                     end - start))
+
+        item_logit = sess.run(logits, feed_dict={
+            user_batch: [user_id], item_batch: [item_id], wins_batch: [nb_wins], fails_batch: [nb_fails]})
+        item_proba = ops.sigmoid(item_logit)
+
+        # print('Asking', item_id, 'predicted', item_proba, 'actually', outcome, 'again')
+
+print('Accuracy', accuracy_score(all_truth, np.round(all_pred)))
+print('AUC', roc_auc_score(all_truth, all_pred))

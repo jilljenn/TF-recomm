@@ -7,7 +7,7 @@ import dataio
 import pickle
 import pywFM
 
-os.environ['LIBFM_PATH'] = '/Users/jin/code/libfm/bin/'
+os.environ['LIBFM_PATH'] = '/Users/jilljenn/code/libfm/bin/'
 
 df_train, df_val, df_test = dataio.get_data()
 

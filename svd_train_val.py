@@ -43,10 +43,11 @@ def svd(train, test):
     wins_batch = tf.placeholder(tf.float32, shape=[None], name="nb_wins")
     fails_batch = tf.placeholder(tf.float32, shape=[None], name="nb_fails")
 
-    infer, logits, logits_cdf, logits_pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds = ops.inference_svd(user_batch, item_batch, wins_batch, fails_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
+    # infer, logits, logits_cdf, logits_pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds = ops.inference_svd(user_batch, item_batch, wins_batch, fails_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
+    infer, logits, regularizer, user_bias, user_features, item_bias, item_features = ops.inference_svd(user_batch, item_batch, wins_batch, fails_batch, user_num=USER_NUM, item_num=ITEM_NUM, dim=DIM, device=DEVICE)
     global_step = tf.train.get_or_create_global_step()
     #cost_l2, train_op = ops.optimization(infer, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
-    cost_nll, auc, update_op, train_op = ops.optimization(infer, logits, logits_cdf, logits_pdf, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
+    cost_nll, train_op = ops.optimization(infer, logits, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
     #cost, train_op = ops.optimization(infer, logits, logits_cdf, logits_pdf, regularizer, rate_batch, learning_rate=LEARNING_RATE, reg=LAMBDA_REG, device=DEVICE)
 
     init_op = tf.group(tf.global_variables_initializer(), tf.local_variables_initializer())
@@ -66,8 +67,8 @@ def svd(train, test):
             train_users, train_items, train_rates, train_wins, train_fails = next(iter_train)
             batch_size = len(train_rates)
 
-            _, train_logits, train_logits_cdf, train_infer = sess.run(
-                [train_op, logits, logits_cdf, infer], feed_dict={
+            _, train_logits, train_infer = sess.run(
+                [train_op, logits, infer], feed_dict={
                     user_batch: train_users, item_batch: train_items, rate_batch: train_rates, wins_batch: train_wins, fails_batch: train_fails})
             #print('values', train_infer[42], train_logits[42], train_logits_cdf[42], ops.sigmoid(train_logits[42]), ops.sigmoid(train_logits_cdf[42]))
 
@@ -108,17 +109,17 @@ def svd(train, test):
                 train_macc = np.mean(train_acc)
                 train_mobo = np.mean(train_obo)
                 train_mauc = np.mean(train_auc)
-                train_mnll = np.mean(train_nll)
+                train_mnll = np.mean(train_nll) / BATCH_SIZE
                 train_mcost = np.mean(train_cost)
                 test_se = []
                 test_acc = []
                 test_obo = []
-                test_auc = []
+                test_auc = 0
                 test_nll = []
                 test_cost = []
                 for test_users, test_items, test_rates, test_wins, test_fails in iter_test:
-                    test_logits, test_logits_cdf, test_infer = sess.run(
-                        [logits, logits_cdf, infer], feed_dict={user_batch: test_users, item_batch: test_items, wins_batch: test_wins, fails_batch: test_fails})
+                    test_logits, test_infer = sess.run(
+                        [logits, infer], feed_dict={user_batch: test_users, item_batch: test_items, wins_batch: test_wins, fails_batch: test_fails})
                     test_size = len(test_rates)
 
                     # print(test_logits_cdf[42], test_logits_pdf[42])
@@ -134,10 +135,11 @@ def svd(train, test):
                             test_se.append(np.power(test_infer - test_rates, 2))
                         else:
                             #train_cost.append(cost_batch)
-                            nll_batch, auc_batch, _ = sess.run([cost_nll, auc, update_op], feed_dict={rate_batch: test_rates, logits: test_logits})
+                            nll_batch = sess.run(cost_nll, feed_dict={rate_batch: test_rates, logits: test_logits})
                             proba_batch = ops.sigmoid(test_logits)
                             test_acc.append(np.round(proba_batch) == test_rates)
-                            test_auc.append(auc_batch)
+                            test_auc = roc_auc_score(test_rates, proba_batch)
+                            # print(proba_batch[:5], test_rates[:5], test_auc)
                             test_nll.append(nll_batch)
                     else:
                         l2_batch = sess.run(cost_l2, feed_dict={rate_batch: rates, infer: pred_batch})
@@ -147,8 +149,7 @@ def svd(train, test):
                 test_rmse = np.sqrt(np.mean(test_se))
                 test_macc = np.mean(test_acc)
                 test_mobo = np.mean(test_obo)
-                test_mauc = np.mean(test_auc)
-                test_mnll = np.mean(test_nll)
+                test_mnll = np.mean(test_nll) / len(test)
                 test_mcost = np.mean(test_cost)
                 if DISCRETE:
                     if NB_CLASSES > 2:
@@ -166,14 +167,14 @@ def svd(train, test):
                             test_mcost,
                             end - start))
                     else:
-                        print("{:3d} TRAIN(size={:d}/{:d}, macc={:f}, mauc={:f}, mnll={:f}) TEST(size={:d}, macc={:f}, mauc={:f}, mnll={:f}) {:f}(s)".format(
+                        print("{:3d} TRAIN(size={:d}/{:d}, macc={:f}, mauc={:f}, mnll={:f}) TEST(size={:d}, macc={:f}, auc={:f}, mnll={:f}) {:f}(s)".format(
                             i // nb_batches,
                             len(train_users), len(train),
                             #train_rmse, # rmse={:f} 
                             train_macc, train_mauc, train_mnll,
                             len(test),
                             #test_rmse, # rmse={:f} 
-                            test_macc, test_mauc, test_mnll,
+                            test_macc, test_auc, test_mnll,
                             end - start))
                 else:
                     print("{:3d} TRAIN(size={:d}/{:d}, rmse={:f}) TEST(size={:d}, rmse={:f}) {:f}(s)".format(
