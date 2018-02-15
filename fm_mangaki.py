@@ -7,7 +7,7 @@ import dataio
 import pickle
 import pywFM
 
-os.environ['LIBFM_PATH'] = '/Users/jilljenn/code/libfm/bin/'
+os.environ['LIBFM_PATH'] = '/Users/jin/code/libfm/bin/'
 
 df_train, df_val, df_test = dataio.get_data()
 
@@ -21,10 +21,10 @@ def df_to_sparse(df, filename):
         #X[i, USER_NUM + 2 * ITEM_NUM + item_id] = nb_fails
     save_npz(filename, X.tocsr())
 
-# df_to_sparse(df_train, 'X_train.npz')
-# print('Train done')
-# df_to_sparse(df_test, 'X_test.npz')
-# print('Test done')
+df_to_sparse(df_train, 'X_train.npz')
+print('Train done')
+df_to_sparse(df_test, 'X_test.npz')
+print('Test done')
 
 X_train = load_npz('X_train.npz')
 X_test = load_npz('X_test.npz')
