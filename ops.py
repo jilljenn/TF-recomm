@@ -85,7 +85,6 @@ def inference_svd(user_batch, item_batch, wins_batch, fails_batch, user_num, ite
         l2_bias_user = tf.nn.l2_loss(bias_users)
         l2_bias_item = tf.nn.l2_loss(bias_items)
         regularizer = tf.add(l2_user, l2_item)
-        regularizer = l1_user
         regularizer = tf.add(regularizer, l2_bias_user)
         regularizer = tf.add(regularizer, l2_bias_item, name="regularizer")
     # return infer, logits, logits_cdf, logits_pdf, regularizer, user_bias, user_features, item_bias, item_features, thresholds
@@ -142,8 +141,8 @@ def optimization(infer, logits, regularizer, rate_batch, learning_rate, reg, dev
         #print(cost)
         
         if var_list is None:
-            train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
-            # train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
+            # train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step)
+            train_op = tf.train.GradientDescentOptimizer(learning_rate).minimize(cost, global_step=global_step)
             # train_op = tf.train.MomentumOptimizer(learning_rate, 0.999, use_nesterov=True).minimize(cost, global_step=global_step)
         else:
             # train_op = tf.train.AdamOptimizer(learning_rate).minimize(cost, global_step=global_step, var_list=var_list)

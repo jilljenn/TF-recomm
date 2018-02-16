@@ -1,11 +1,12 @@
 from __future__ import absolute_import, division, print_function
+from config import CSV_TRAIN, CSV_VAL, CSV_TEST
 import numpy as np
 import pandas as pd
 
 
 def read_process(filname, sep="\t"):
-    col_names = ["user", "item", "outcome"]
-    # col_names = ["user", "item", "outcome", "wins", "fails"]
+    # col_names = ["user", "item", "outcome"]
+    col_names = ["user", "item", "outcome", "wins", "fails"]
     df = pd.read_csv(filname, sep=sep, header=None, names=col_names, engine='python')
     # df["user"] -= 1
     # df["item"] -= 1
@@ -16,9 +17,9 @@ def read_process(filname, sep="\t"):
 
 
 def get_data():
-    df_train = read_process("/tmp/train.csv", sep=",")
-    df_val = read_process("/tmp/val.csv", sep=",")
-    df_test = read_process("/tmp/test.csv", sep=",")
+    df_train = read_process(CSV_TRAIN, sep=",")
+    df_val = read_process(CSV_VAL, sep=",")
+    df_test = read_process(CSV_TEST, sep=",")
     return df_train, df_val, df_test
 
 
