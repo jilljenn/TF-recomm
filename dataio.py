@@ -1,5 +1,6 @@
 from __future__ import absolute_import, division, print_function
 from config import CSV_TRAIN, CSV_VAL, CSV_TEST
+import os
 import numpy as np
 import pandas as pd
 
@@ -21,6 +22,25 @@ def get_data():
     df_val = read_process(CSV_VAL, sep=",")
     df_test = read_process(CSV_TEST, sep=",")
     return df_train, df_val, df_test
+
+
+def get_legend(options):
+    short = ''
+    full = ''
+    agents = ['users', 'items', 'skills']
+    active = []
+    for agent in agents:
+        if vars(options)[agent]:
+            short += agent[0]
+            active.append(agent)
+    short += str(options.d)
+    full = ', '.join(active) + ' d = {:d}'.format(options.d)
+    return short, full, active
+
+
+def prepare_folder(path):
+    if not os.path.isdir(path):
+        os.makedirs(path)
 
 
 class ShuffleIterator(object):

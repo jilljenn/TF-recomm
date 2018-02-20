@@ -2,7 +2,7 @@ import yaml
 import os.path
 
 
-DATASET_NAME = 'assistments'
+DATASET_NAME = 'fraction'
 
 DATA_FOLDER = 'data'
 CSV_FOLDER = os.path.join(DATA_FOLDER, DATASET_NAME)
