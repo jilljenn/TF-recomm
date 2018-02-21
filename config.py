@@ -2,7 +2,12 @@ import yaml
 import os.path
 
 
-DATASET_NAME = 'fraction'
+# DATASET_NAME = 'assistments'
+DATASET_NAME = 'berkeley'
+# DATASET_NAME = 'castor6e'
+# DATASET_NAME = 'fraction'
+# DATASET_NAME = 'timss2003'
+
 
 DATA_FOLDER = 'data'
 CSV_FOLDER = os.path.join(DATA_FOLDER, DATASET_NAME)
@@ -34,3 +39,6 @@ DISCRETE = True
 DEVICE = "/cpu:0"
 PREFIX = '' # + 'normalized_'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+ARTICLE_FOLDER = '/Users/jilljenn/code/article/edm2018/'
+LIBFM_PATH = '/Users/jilljenn/code/libfm/bin/'

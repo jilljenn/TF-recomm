@@ -27,7 +27,7 @@ def get_data():
 def get_legend(options):
     short = ''
     full = ''
-    agents = ['users', 'items', 'skills']
+    agents = ['users', 'items', 'skills', 'attempts', 'wins', 'fails']
     active = []
     for agent in agents:
         if vars(options)[agent]:
@@ -35,7 +35,7 @@ def get_legend(options):
             active.append(agent)
     short += str(options.d)
     full = ', '.join(active) + ' d = {:d}'.format(options.d)
-    latex = r'\textnormal{{:s} } d = {:d}'.format(', '.join(active), options.d)
+    latex = r'\textnormal{{{:s} }} d = {:d}'.format(', '.join(active), options.d)
     return short, full, latex, active
 
 

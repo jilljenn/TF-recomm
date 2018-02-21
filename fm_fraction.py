@@ -1,6 +1,6 @@
 from config import *
 import argparse
-from scipy.sparse import lil_matrix, coo_matrix, save_npz, load_npz, hstack
+from scipy.sparse import lil_matrix, coo_matrix, save_npz, load_npz, hstack, diags
 from sklearn.metrics import roc_auc_score, accuracy_score, log_loss
 import pandas as pd
 import numpy as np
@@ -9,17 +9,22 @@ import pywFM
 import json
 
 
-os.environ['LIBFM_PATH'] = '/Users/jilljenn/code/libfm/bin/'
+os.environ['LIBFM_PATH'] = LIBFM_PATH
 
 df_train, df_val, df_test = dataio.get_data()
-qmatrix = load_npz(Q_NPZ)
-_, SKILL_NUM = qmatrix.shape
+try:
+    qmatrix = load_npz(Q_NPZ)
+except FileNotFoundError:
+    qmatrix = diags([1] * ITEM_NUM).tocsr()
 
-parser = argparse.ArgumentParser(description='Run FM on non-temporal data')
+parser = argparse.ArgumentParser(description='Run Knowledge Tracing Machines')
 parser.add_argument('--d', type=int, nargs='?')
 parser.add_argument('--users', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--items', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--skills', type=bool, nargs='?', const=True, default=False)
+parser.add_argument('--attempts', type=bool, nargs='?', const=True, default=False)
+parser.add_argument('--wins', type=bool, nargs='?', const=True, default=False)
+parser.add_argument('--fails', type=bool, nargs='?', const=True, default=False)
 options = parser.parse_args()
 
 
@@ -39,7 +44,12 @@ def df_to_sparse(df, filename):
     X['users'] = coo_matrix(([1] * nb_events, (rows, df['user'])), shape=(nb_events, USER_NUM))
     X['items'] = coo_matrix(([1] * nb_events, (rows, df['item'])), shape=(nb_events, ITEM_NUM))
     X['skills'] = qmatrix[df['item']]
-    print([(agent, X[agent].shape) for agent in {'users', 'items', 'skills'}])
+    wins = diags(df['wins'])
+    fails = diags(df['fails'])
+    X['attempts'] = (wins + fails) @ X['skills']
+    X['wins'] = wins @ X['skills']
+    X['fails'] = fails @ X['skills']
+    print([(agent, X[agent].shape) for agent in {'users', 'items', 'skills', 'attempts', 'wins', 'fails'}])
     X_fm = hstack([X[agent] for agent in active_agents]).tocsr()
     save_npz(SPARSE_NPZ, X_fm)
     return X_fm
@@ -78,4 +88,4 @@ with open(os.path.join(EXPERIMENT_FOLDER, 'results.json'), 'w') as f:
             'AUC': AUC,
             'NLL': NLL
         }
-    }))
+    }, indent=4))
