@@ -23,7 +23,7 @@ parser.add_argument('--skills', type=bool, nargs='?', const=True, default=False)
 options = parser.parse_args()
 
 
-short_legend, full_legend, active_agents = dataio.get_legend(options)
+short_legend, full_legend, latex_legend, active_agents = dataio.get_legend(options)
 EXPERIMENT_FOLDER = os.path.join(CSV_FOLDER, short_legend)
 dataio.prepare_folder(EXPERIMENT_FOLDER)
 
@@ -49,7 +49,15 @@ print('Train done', X_train.shape)
 X_test = df_to_sparse(df_test, 'X_test.npz')
 print('Test done', X_test.shape)
 
-fm = pywFM.FM(task='classification', num_iter=100, k2=options.d, rlog=True, learning_method='mcmc')
+params = {
+    'task': 'classification',
+    'num_iter': 500,
+    'rlog': True,
+    'learning_method': 'mcmc'
+}
+if options.d > 0:
+    params['k2'] = options.d
+fm = pywFM.FM(**params)
 model = fm.run(X_train, df_train['outcome'], X_test, df_test['outcome'])
 
 ACC = accuracy_score(df_test['outcome'], np.round(model.predictions))
@@ -62,7 +70,8 @@ with open(os.path.join(EXPERIMENT_FOLDER, 'results.json'), 'w') as f:
         'args': vars(options),
         'legends': {
             'short': short_legend,
-            'full': full_legend
+            'full': full_legend,
+            'latex': latex_legend
         },
         'metrics': {
             'ACC': ACC,

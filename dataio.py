@@ -35,7 +35,8 @@ def get_legend(options):
             active.append(agent)
     short += str(options.d)
     full = ', '.join(active) + ' d = {:d}'.format(options.d)
-    return short, full, active
+    latex = r'\textnormal{{:s} } d = {:d}'.format(', '.join(active), options.d)
+    return short, full, latex, active
 
 
 def prepare_folder(path):
@@ -88,4 +89,3 @@ class OneEpochIterator(ShuffleIterator):
         out = self.inputs[self.idx_group[self.group_id], :]
         self.group_id += 1
         return [out[:, i] for i in range(self.num_cols)]
-
