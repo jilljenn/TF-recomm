@@ -61,7 +61,7 @@ print('Test done', X_test.shape)
 
 params = {
     'task': 'classification',
-    'num_iter': 500,
+    'num_iter': 1000,
     'rlog': True,
     'learning_method': 'mcmc'
 }

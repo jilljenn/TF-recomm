@@ -2,10 +2,10 @@ import yaml
 import os.path
 
 
-DATASET_NAME = 'assistments'
+# DATASET_NAME = 'assistments'
 # DATASET_NAME = 'berkeley'
 # DATASET_NAME = 'castor6e'
-# DATASET_NAME = 'fraction'
+DATASET_NAME = 'fraction'
 # DATASET_NAME = 'timss2003'
 
 
