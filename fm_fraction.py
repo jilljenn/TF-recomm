@@ -26,9 +26,10 @@ parser.add_argument('--attempts', type=bool, nargs='?', const=True, default=Fals
 parser.add_argument('--wins', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--fails', type=bool, nargs='?', const=True, default=False)
 options = parser.parse_args()
+experiment_args = vars(options)
 
 
-short_legend, full_legend, latex_legend, active_agents = dataio.get_legend(options)
+short_legend, full_legend, latex_legend, active_agents = dataio.get_legend(experiment_args)
 EXPERIMENT_FOLDER = os.path.join(CSV_FOLDER, short_legend)
 dataio.prepare_folder(EXPERIMENT_FOLDER)
 
@@ -77,7 +78,7 @@ NLL = log_loss(df_test['outcome'], model.predictions)
 model.rlog.to_csv(os.path.join(EXPERIMENT_FOLDER, 'rlog.csv'))
 with open(os.path.join(EXPERIMENT_FOLDER, 'results.json'), 'w') as f:
     f.write(json.dumps({
-        'args': vars(options),
+        'args': experiment_args,
         'legends': {
             'short': short_legend,
             'full': full_legend,

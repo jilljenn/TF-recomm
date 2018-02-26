@@ -1,8 +1,18 @@
 from __future__ import absolute_import, division, print_function
-from config import CSV_TRAIN, CSV_VAL, CSV_TEST
 import os
 import numpy as np
 import pandas as pd
+
+
+def build_paths(DATASET_NAME):
+    DATA_FOLDER = 'data'
+    CSV_FOLDER = os.path.join(DATA_FOLDER, DATASET_NAME)
+    CSV_TRAIN = os.path.join(CSV_FOLDER, 'train.csv')
+    CSV_TEST = os.path.join(CSV_FOLDER, 'test.csv')
+    CSV_VAL = os.path.join(CSV_FOLDER, 'val.csv')
+    CONFIG = os.path.join(CSV_FOLDER, 'config.yml')
+    Q_NPZ = os.path.join(CSV_FOLDER, 'qmatrix.npz')
+    return CSV_FOLDER, CSV_TRAIN, CSV_TEST, CSV_VAL, CONFIG, Q_NPZ
 
 
 def read_process(filname, sep="\t"):
@@ -17,25 +27,36 @@ def read_process(filname, sep="\t"):
     return df
 
 
-def get_data():
+def get_data(DATASET_NAME):
+    CSV_FOLDER, CSV_TRAIN, CSV_TEST, CSV_VAL, CONFIG, Q_NPZ = build_paths(DATASET_NAME)
     df_train = read_process(CSV_TRAIN, sep=",")
     df_val = read_process(CSV_VAL, sep=",")
     df_test = read_process(CSV_TEST, sep=",")
     return df_train, df_val, df_test
 
 
-def get_legend(options):
+def get_legend(experiment_args):
+    dim = experiment_args['d']
     short = ''
     full = ''
     agents = ['users', 'items', 'skills', 'attempts', 'wins', 'fails']
     active = []
     for agent in agents:
-        if vars(options)[agent]:
+        if experiment_args.get(agent):
             short += agent[0]
             active.append(agent)
-    short += str(options.d)
-    full = ', '.join(active) + ' d = {:d}'.format(options.d)
-    latex = r'\textnormal{{{:s} }} d = {:d}'.format(', '.join(active), options.d)
+    short += str(dim)
+    prefix = ''
+    if set(active) == {'users', 'items'} and dim == 0:
+        prefix = 'IRT: '
+    elif set(active) == {'users', 'items'} and dim > 0:
+        prefix = 'MIRTb: '
+    elif set(active) == {'users', 'skills', 'attempts'} and dim == 0:
+        prefix = 'AFM: '
+    elif set(active) == {'users', 'skills', 'wins', 'fails'} and dim == 0:
+        prefix = 'PFA: '
+    full = prefix + ', '.join(active) + ' d = {:d}'.format(dim)
+    latex = prefix + ', '.join(active)
     return short, full, latex, active
 
 
