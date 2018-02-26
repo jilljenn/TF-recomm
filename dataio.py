@@ -2,23 +2,31 @@ from __future__ import absolute_import, division, print_function
 import os
 import numpy as np
 import pandas as pd
+import yaml
 
 
 def build_paths(DATASET_NAME):
     DATA_FOLDER = 'data'
     CSV_FOLDER = os.path.join(DATA_FOLDER, DATASET_NAME)
+    CONFIG_FILE = os.path.join(CSV_FOLDER, 'config.yml')
     CSV_TRAIN = os.path.join(CSV_FOLDER, 'train.csv')
     CSV_TEST = os.path.join(CSV_FOLDER, 'test.csv')
     CSV_VAL = os.path.join(CSV_FOLDER, 'val.csv')
-    CONFIG = os.path.join(CSV_FOLDER, 'config.yml')
     Q_NPZ = os.path.join(CSV_FOLDER, 'qmatrix.npz')
-    return CSV_FOLDER, CSV_TRAIN, CSV_TEST, CSV_VAL, CONFIG, Q_NPZ
+    return CSV_FOLDER, CSV_TRAIN, CSV_TEST, CSV_VAL, CONFIG_FILE, Q_NPZ
 
 
-def read_process(filname, sep="\t"):
+def get_config(CONFIG_FILE):
+    with open(CONFIG_FILE) as f:
+        config = yaml.load(f)
+    # BATCH_SIZE = 500  # Keskar et al. 2016 ? Generalization gap
+    return config
+
+
+def read_process(filename, sep="\t"):
     # col_names = ["user", "item", "outcome"]
     col_names = ["user", "item", "outcome", "wins", "fails"]
-    df = pd.read_csv(filname, sep=sep, header=None, names=col_names, engine='python')
+    df = pd.read_csv(filename, sep=sep, header=None, names=col_names, engine='python')
     # df["user"] -= 1
     # df["item"] -= 1
     for col in {"user", "item"}:

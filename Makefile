@@ -19,12 +19,14 @@ assistments:
 	# python fm_fraction.py --d 10 --users --items --wins --fails
 
 berkeley:
-	python fm_fraction.py --d 0 --users --items --skills
-	python fm_fraction.py --d 0 --users --items --attempts
-	python fm_fraction.py --d 0 --users --items --wins --fails
-	python fm_fraction.py --d 10 --users --items --skills
-	python fm_fraction.py --d 10 --users --items --attempts
-	python fm_fraction.py --d 10 --users --items --wins --fails
+	# python fm_fraction.py --dataset berkeley2 --d 0 --users --items
+	# python fm_fraction.py --d 0 --users --items --attempts
+	# python fm_fraction.py --dataset berkeley2 --d 0 --users --skills --wins --fails
+	# python fm_fraction.py --dataset berkeley2 --d 0 --users --items --skills --wins --fails
+	python fm_fraction.py --dataset berkeley2 --d 10 --users --items --skills --wins --fails
+	# python fm_fraction.py --d 10 --users --items --skills
+	# python fm_fraction.py --d 10 --users --items --attempts
+	# python fm_fraction.py --d 10 --users --items --wins --fails
 
 fraction:
 	# python fm_fraction.py --d 0 --users --items --skills
