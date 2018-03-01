@@ -16,6 +16,17 @@ def build_paths(DATASET_NAME):
     return CSV_FOLDER, CSV_TRAIN, CSV_TEST, CSV_VAL, CONFIG_FILE, Q_NPZ
 
 
+def build_new_paths(DATASET_NAME):
+    DATA_FOLDER = 'data'
+    CSV_FOLDER = os.path.join(DATA_FOLDER, DATASET_NAME)
+    CONFIG_FILE = os.path.join(CSV_FOLDER, 'config.yml')
+    CSV_ALL = os.path.join(CSV_FOLDER, 'all.csv')
+    Q_NPZ = os.path.join(CSV_FOLDER, 'qmatrix.npz')
+    SKILL_WINS = os.path.join(CSV_FOLDER, 'skill_wins.npz')
+    SKILL_FAILS = os.path.join(CSV_FOLDER, 'skill_fails.npz')
+    return CSV_FOLDER, CSV_ALL, CONFIG_FILE, Q_NPZ, SKILL_WINS, SKILL_FAILS
+
+
 def get_config(CONFIG_FILE):
     with open(CONFIG_FILE) as f:
         config = yaml.load(f)
@@ -43,15 +54,21 @@ def get_data(DATASET_NAME):
     return df_train, df_val, df_test
 
 
+def get_new_data(DATASET_NAME):
+    CSV_FOLDER, CSV_ALL, CONFIG_FILE, Q_NPZ, SKILL_WINS, SKILL_FAILS = build_new_paths(DATASET_NAME)
+    df = read_process(CSV_ALL, sep=",")
+    return df
+
+
 def get_legend(experiment_args):
     dim = experiment_args['d']
     short = ''
     full = ''
-    agents = ['users', 'items', 'skills', 'attempts', 'wins', 'fails']
+    agents = ['users', 'items', 'skills', 'attempts', 'wins', 'fails', 'item_wins', 'item_fails']
     active = []
     for agent in agents:
         if experiment_args.get(agent):
-            short += agent[0]
+            short += agent[0] if '_' not in agent else ('W' if '_w' in agent else 'F')
             active.append(agent)
     short += str(dim)
     prefix = ''
@@ -64,7 +81,7 @@ def get_legend(experiment_args):
     elif set(active) == {'users', 'skills', 'wins', 'fails'} and dim == 0:
         prefix = 'PFA: '
     full = prefix + ', '.join(active) + ' d = {:d}'.format(dim)
-    latex = prefix + ', '.join(active)
+    latex = prefix + ', '.join(active)#.replace('_', r'\_')
     return short, full, latex, active
 
 

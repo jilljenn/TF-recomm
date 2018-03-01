@@ -16,8 +16,10 @@ options = parser.parse_args()
 DATASET_NAME = options.dataset
 CSV_FOLDER, CSV_TRAIN, CSV_TEST, CSV_VAL, CONFIG_FILE, Q_NPZ = dataio.build_paths(DATASET_NAME)
 
-
-if DATASET_NAME == 'assistments':
+if DATASET_NAME == 'assistments0':
+    categories = ['All models', 'wins + fails']
+    categories_regexp = ['', 'wins, fails ']
+elif DATASET_NAME == 'assistments':
     categories = ['All models', 'wins + fails']
     categories_regexp = ['', 'wins, fails ']
 elif DATASET_NAME == 'berkeley':
@@ -36,7 +38,7 @@ else:
     categories = ['users + items + skills', 'd = 5']
     categories_regexp = ['users, items, skills', 'd = 5 ']
 
-experiments = glob.glob('%s/*/results.json' % CSV_FOLDER)
+experiments = glob.glob('%s/*/0/results.json' % CSV_FOLDER)
 fig, axes = plt.subplots(2, len(categories), figsize=(8, 12), sharex='col')  # x-axis will be shared across columns
 acc, nll = axes
 
@@ -65,7 +67,7 @@ with open(TABLE_TEX, 'w') as latex:
         array.append(row)
         latex.write(line + '\n')
 df = pd.DataFrame(array, columns=('model', 'dim', 'ACC', 'AUC', 'NLL')).sort_values('NLL').round(3)
-df.to_latex(TABLE_TEX, column_format='c' * 5, escape=False, index=False)
+df.to_latex(TABLE_TEX, column_format='c' * 5, escape=True, index=False)
 
 # Curves
 acc_curves = defaultdict(list)

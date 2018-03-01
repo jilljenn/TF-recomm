@@ -2,9 +2,14 @@ TABLE_TEX=$(wildcard data/*/*-table.tex)
 FIGURES_PDF=$(TABLE_TEX:-table.tex=-results.pdf)
 
 all: $(FIGURES_PDF) $(TABLE_TEX)
-	# python fm_fraction.py --d 0 --users --skills --attempts
-	# python fm_fraction.py --d 0 --users --skills --wins --fails
-	# python fm_fraction.py --d 5 --users --skills --wins --fails
+	python fm.py --dataset assistments0 --iter 500 --d 0 --users --skills --wins --fails
+	# python fm.py --dataset assistments0 --iter 50 --d 0 --users --items --skills --wins --fails
+	python fm.py --dataset assistments0 --iter 500 --d 1 --users --items --skills --wins --fails
+	# python fm.py --dataset assistments0 --iter 50 --d 2 --users --items --skills --wins --fails
+	python fm.py --dataset assistments0 --iter 500 --d 0 --users --items --skills --wins --fails --item_wins --item_fails
+
+plot:
+	python plot.py --dataset assistments0
 
 assistments:
 	python fm_fraction.py --d 0 --users --items --skills --wins --fails

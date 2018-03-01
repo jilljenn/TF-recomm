@@ -2,6 +2,7 @@ from scipy.sparse import load_npz
 from collections import defaultdict
 from config import ARTICLE_FOLDER
 import pandas as pd
+import numpy as np
 import yaml
 import glob
 import os
@@ -44,7 +45,9 @@ for dataset_name in data:
         nb_entries / (nb_users * nb_items),
         nb_attempts_per_user
     ])
-ds = pd.DataFrame(datasets, columns=('Name', 'Users', 'Items', 'Skills', 'Skills per item', 'Entries', 'Sparsity (user, item)', 'Attempts per user')).round(2).sort_values('Entries')
+ds = pd.DataFrame(datasets, columns=('Name', 'Users', 'Items', 'Skills', 'Skills per item', 'Entries', 'Sparsity (user, item)', 'Attempts per user')).round(3).sort_values('Entries')
+ds['Users'] = ds['Users'].astype(np.int32)
+ds['Items'] = ds['Items'].astype(np.int32)
 ds.to_csv('/tmp/datasets.csv', index=False)
 ds.to_latex('/tmp/datasets.tex', index=False)
 os.system('cat /tmp/datasets.csv')
