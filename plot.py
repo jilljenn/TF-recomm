@@ -27,8 +27,8 @@ elif DATASET_NAME == 'berkeley':
     categories = ['All models', 'd = 10']
     categories_regexp = ['', 'd = 10 ']
 elif DATASET_NAME == 'berkeley2' or DATASET_NAME == 'berkeley0':
-    categories = ['All models', 'd = 0']
-    categories_regexp = ['', 'd = 0 ']
+    categories = ['All models', 'users + items']
+    categories_regexp = ['', 'users, items']
 elif DATASET_NAME == 'timss2003':
     categories = ['users + items + skills', 'd = 5']
     categories_regexp = ['users, items, skills ', 'd = 5 ']
