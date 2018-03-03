@@ -26,7 +26,7 @@ elif DATASET_NAME == 'assistments':
 elif DATASET_NAME == 'berkeley':
     categories = ['All models', 'd = 10']
     categories_regexp = ['', 'd = 10 ']
-elif DATASET_NAME == 'berkeley2':
+elif DATASET_NAME == 'berkeley2' or DATASET_NAME == 'berkeley0':
     categories = ['All models', 'd = 0']
     categories_regexp = ['', 'd = 0 ']
 elif DATASET_NAME == 'timss2003':

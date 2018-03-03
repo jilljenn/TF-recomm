@@ -41,7 +41,7 @@ for dataset_name in data:
         nb_items,
         values.get((dataset_name, 'nb_skills'), nb_items),
         values.get((dataset_name, 'nb_skills_per_item'), 1),
-        nb_entries,
+        len(df),
         nb_entries / (nb_users * nb_items),
         nb_attempts_per_user
     ])

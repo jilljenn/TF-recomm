@@ -84,6 +84,7 @@ def df_to_sparse(df, filename):
 
 
 X_fm = df_to_sparse(df, 'X.npz')
+print('Encoding done')
 
 params = {
     'task': 'classification',

@@ -1,16 +1,30 @@
 TABLE_TEX=$(wildcard data/*/*-table.tex)
 FIGURES_PDF=$(TABLE_TEX:-table.tex=-results.pdf)
 
-all: $(FIGURES_PDF) $(TABLE_TEX)
-	# python fm.py --dataset assistments0 --iter 500 --d 0 --users --skills --wins --fails
-	# python fm.py --dataset assistments0 --iter 50 --d 0 --users --items --skills --wins --fails
-	# python fm.py --dataset assistments0 --iter 500 --d 1 --users --items --skills --wins --fails
-	# python fm.py --dataset assistments0 --iter 50 --d 2 --users --items --skills --wins --fails
-	# python fm.py --dataset assistments0 --iter 500 --d 0 --users --items --skills --wins --fails --item_wins --item_fails
+all: #$(FIGURES_PDF) $(TABLE_TEX)
+	python fm.py --dataset assistments0 --iter 500 --d 0 --users --skills --wins --fails
+	python fm.py --dataset assistments0 --iter 500 --d 0 --users --items --skills --wins --fails
+	python fm.py --dataset assistments0 --iter 500 --d 1 --users --items --skills --wins --fails
+	python fm.py --dataset assistments0 --iter 500 --d 2 --users --items --skills --wins --fails
+	python fm.py --dataset assistments0 --iter 500 --d 5 --users --items --skills --wins --fails
+	python fm.py --dataset assistments0 --iter 500 --d 0 --users --items --skills --wins --fails --item_wins --item_fails
+	python fm.py --dataset assistments0 --iter 500 --d 1 --users --items --skills --wins --fails --item_wins --item_fails
+	python fm.py --dataset assistments0 --iter 500 --d 2 --users --items --skills --wins --fails --item_wins --item_fails
+
+berkeley0:
+	python fm.py --dataset berkeley0 --iter 300 --d 0 --users --items
+	python fm.py --dataset berkeley0 --iter 300 --d 1 --users --items
+	# python fm.py --dataset berkeley0 --iter 300 --d 0 --users --skills --wins --fails
+	# python fm.py --dataset berkeley0 --iter 300 --d 0 --users --items --skills --wins --fails
+	# python fm.py --dataset berkeley0 --iter 300 --d 1 --users --items --skills --wins --fails
+	# python fm.py --dataset berkeley0 --iter 300 --d 2 --users --items --skills --wins --fails
+	# python fm.py --dataset berkeley0 --iter 300 --d 5 --users --items --skills --wins --fails
+	# python fm.py --dataset berkeley0 --iter 300 --d 0 --users --items --skills --wins --fails --item_wins --item_fails
+	# python fm.py --dataset berkeley0 --iter 300 --d 1 --users --items --skills --wins --fails --item_wins --item_fails
 
 combine:
-	python combine.py --dataset fraction0
-	python plot.py --dataset fraction0
+	python combine.py --dataset assistments0
+	python plot.py --dataset assistments0
 
 dummy:
 	# python fm.py --iter 10 --d 0 --users --items --skills --wins --fails
