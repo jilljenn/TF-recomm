@@ -18,7 +18,7 @@ dummy:
 	xelatex diagram_pretty
 
 plot:
-	python plot.py --dataset assistments0
+	python plot.py --dataset fraction0
 
 assistments:
 	python fm_fraction.py --d 0 --users --items --skills --wins --fails
