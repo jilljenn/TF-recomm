@@ -24,7 +24,7 @@ parser.add_argument('--wins', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--fails', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--item_wins', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--item_fails', type=bool, nargs='?', const=True, default=False)
-parser.add_argument('--iter', type=int, nargs='?', default=500)
+parser.add_argument('--iter', type=int, nargs='?', default=1000)
 options = parser.parse_args()
 DATASET_NAME = options.dataset
 CSV_FOLDER, CSV_ALL, CONFIG_FILE, Q_NPZ, SKILL_WINS, SKILL_FAILS = dataio.build_new_paths(DATASET_NAME)
@@ -39,8 +39,12 @@ try:
     qmatrix = load_npz(Q_NPZ)
 except FileNotFoundError:
     qmatrix = diags([1] * ITEM_NUM).tocsr()
-skill_wins = load_npz(SKILL_WINS)
-skill_fails = load_npz(SKILL_FAILS)
+try:
+    skill_wins = load_npz(SKILL_WINS)
+    skill_fails = load_npz(SKILL_FAILS)
+except:
+    skill_wins = None
+    skill_fails = None
 
 short_legend, full_legend, latex_legend, active_agents = dataio.get_legend(experiment_args)
 EXPERIMENT_FOLDER = os.path.join(CSV_FOLDER, short_legend)
@@ -51,9 +55,9 @@ for run_id in range(5):
 
 def df_to_sparse(df, filename):
     SPARSE_NPZ = os.path.join(EXPERIMENT_FOLDER, filename)
-    if os.path.isfile(SPARSE_NPZ):
-        X_fm = load_npz(SPARSE_NPZ)
-        return X_fm
+    # if os.path.isfile(SPARSE_NPZ):
+    #     X_fm = load_npz(SPARSE_NPZ)
+    #     return X_fm
     X = {}
     nb_events, _ = df.shape
     rows = list(range(nb_events))
@@ -66,19 +70,18 @@ def df_to_sparse(df, filename):
     X['item_wins'] = item_wins @ X['items']
     X['item_fails'] = item_fails @ X['items']
 
-    print('skill wins', skill_wins.shape)
-    print('skill fails', skill_fails.shape)
-    print('skill attempts', (skill_wins + skill_fails).shape)
-    X['attempts'] = skill_wins + skill_fails
-    X['wins'] = skill_wins
-    X['fails'] = skill_fails
-    print([(agent, X[agent].shape) for agent in {'users', 'items', 'skills', 'attempts', 'wins', 'fails'}])
+    if skill_wins is not None:
+        print('skill wins', skill_wins.shape)
+        print('skill fails', skill_fails.shape)
+        print('skill attempts', (skill_wins + skill_fails).shape)
+        X['attempts'] = skill_wins + skill_fails
+        X['wins'] = skill_wins
+        X['fails'] = skill_fails
+    print([(agent, X[agent].shape) for agent in {'users', 'items', 'skills', 'attempts', 'wins', 'fails'} if agent in X])
     X_fm = hstack([X[agent] for agent in active_agents]).tocsr()
     save_npz(SPARSE_NPZ, X_fm)
     return X_fm
 
-print('Skill wins loaded', skill_wins.shape)
-print('Skill fails loaded', skill_fails.shape)
 
 X_fm = df_to_sparse(df, 'X.npz')
 
@@ -92,7 +95,7 @@ if options.d > 0:
     params['k2'] = options.d
 
 # Run experiments
-kf = KFold(n_splits=5)
+kf = KFold(n_splits=5, shuffle=True)
 for run_id, (i_train, i_test) in enumerate(kf.split(X_fm)):
     X_train = X_fm[i_train]
     y_train = df.iloc[i_train]['outcome']
@@ -122,4 +125,3 @@ for run_id, (i_train, i_test) in enumerate(kf.split(X_fm)):
                 'NLL': NLL
             }
         }, indent=4))
-    break

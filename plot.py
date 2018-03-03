@@ -31,14 +31,14 @@ elif DATASET_NAME == 'berkeley2':
 elif DATASET_NAME == 'timss2003':
     categories = ['users + items + skills', 'd = 5']
     categories_regexp = ['users, items, skills ', 'd = 5 ']
-elif DATASET_NAME == 'fraction':
+elif DATASET_NAME == 'fraction' or DATASET_NAME == 'fraction0':
     categories = ['All models', 'users + items', 'd = 0']
     categories_regexp = ['', 'users, items ', 'd = 0 ']
 else:
     categories = ['users + items + skills', 'd = 5']
     categories_regexp = ['users, items, skills', 'd = 5 ']
 
-experiments = glob.glob('%s/*/0/results.json' % CSV_FOLDER)
+experiments = glob.glob('%s/*/results.json' % CSV_FOLDER)
 fig, axes = plt.subplots(2, len(categories), figsize=(8, 12), sharex='col')  # x-axis will be shared across columns
 acc, nll = axes
 
