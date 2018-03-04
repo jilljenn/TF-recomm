@@ -62,13 +62,19 @@ with open(TABLE_TEX, 'w') as latex:
         labels[filename] = full_legend
         line = '{:s} & '.format(latex_legend)
         line += ' & '.join('{:.4f}'.format(results['metrics'][metric]) for metric in ['ACC', 'AUC', 'NLL']) + r'\\'
-        row = [latex_legend, results['args']['d']] + [results['metrics'][metric] for metric in ['ACC', 'AUC', 'NLL']]
+        row = [latex_legend.replace('_', r'\_'), results['args']['d']] + [results['metrics'][metric] for metric in ['ACC', 'AUC', 'NLL']]
         # MCMC NLL is different
         row[-1] = nll_values[filename].values[-1]
         array.append(row)
         latex.write(line + '\n')
-df = pd.DataFrame(array, columns=('model', 'dim', 'ACC', 'AUC', 'NLL')).sort_values('NLL').round(3)
-df.to_latex(TABLE_TEX, column_format='c' * 5, escape=True, index=False)
+pd.set_option('display.max_colwidth', -1)
+df = pd.DataFrame(array, columns=('model', 'dim', 'ACC', 'AUC', 'NLL'))
+df = df.sort_values('NLL').round(3)
+for metric in {'ACC', 'AUC', 'NLL'}:
+    extremum = df[metric].max() if metric in {'ACC', 'AUC'} else df[metric].min()
+    winners = df.query('abs({:s} - @extremum) <= 0.0011'.format(metric))
+    df.loc[winners.index, metric] = winners[metric].map(lambda entry: r'\textbf{{{:.3f}}}'.format(entry))
+df.to_latex(TABLE_TEX, column_format='c' * 5, escape=False, index=False)
 
 cache_styles = {}
 default_cycler = list(plt.rcParams['axes.prop_cycle'])
@@ -80,7 +86,7 @@ def get_style(legend):
     elif 'MIRTb:' in legend:
         return {'color': 'red', 'linewidth': 2, 'linestyle': ':'}
     elif 'PFA:' in legend:
-        return {'color': 'blue', 'linewidth': 1, 'linestyle': '-'}
+        return {'color': 'blue', 'linewidth': 1, 'linestyle': '--'}
     style = default_cycler[len(cache_styles) % len(default_cycler)]
     cache_styles[legend] = style
     return style
@@ -109,8 +115,8 @@ acc[0].set_ylabel('Accuracy')
 nll[0].set_ylabel('Log-loss')
 RESULTS_PDF = os.path.join(CSV_FOLDER, '{:s}-results.pdf'.format(DATASET_NAME))
 plt.savefig(RESULTS_PDF, format='pdf')
-#os.system('open {:s}'.format(TABLE_TEX))
-os.system('open {:s}'.format(RESULTS_PDF))
+os.system('open {:s}'.format(TABLE_TEX))
+#os.system('open {:s}'.format(RESULTS_PDF))
 os.system('cp {:s} {:s}tables/'.format(TABLE_TEX, ARTICLE_FOLDER))
 os.system('cp {:s} {:s}figures/'.format(RESULTS_PDF, ARTICLE_FOLDER))
-plt.show()
+# plt.show()
