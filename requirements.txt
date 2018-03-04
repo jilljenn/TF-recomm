@@ -4,3 +4,4 @@ tensorflow
 scipy
 scikit-learn
 matplotlib
+pywFM
