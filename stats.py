@@ -13,7 +13,7 @@ for filename in glob.glob('data/*/*'):
     if 'mangaki' in filename:
         continue
     dataset_name = filename.split('/')[1]
-    if filename.endswith('.npz'):
+    if filename.endswith('qmatrix.npz'):
         q = load_npz(filename)
         _, values[dataset_name, 'nb_skills'] = q.shape
         values[dataset_name, 'nb_skills_per_item'] = q.sum(axis=1).mean()
