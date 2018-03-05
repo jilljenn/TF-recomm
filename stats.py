@@ -10,9 +10,9 @@ import os
 data = defaultdict(list)
 values = {}
 for filename in glob.glob('data/*/*'):
-    if 'mangaki' in filename:
+    if 'mangaki' in filename or '0/' not in filename:
         continue
-    dataset_name = filename.split('/')[1]
+    dataset_name = filename.split('/')[1][:-1]
     if filename.endswith('qmatrix.npz'):
         q = load_npz(filename)
         _, values[dataset_name, 'nb_skills'] = q.shape
