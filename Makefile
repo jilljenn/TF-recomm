@@ -5,6 +5,9 @@ all: $(FIGURES_PDF) $(TABLE_TEX)
 	# Last TODO
 	# python fm.py --dataset assistments0 --iter 500 --d 0 --users --items  # IRT
 
+crop:
+	for x in data/*/*results.pdf; do pdfcrop $$x $$x; done
+
 dodo:
 	python fm.py --dataset assistments0 --iter 500 --d 1 --users --items
 	python fm.py --dataset assistments0 --iter 500 --d 5 --users --items  # MIRT
