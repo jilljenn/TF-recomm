@@ -8,6 +8,10 @@ all: $(FIGURES_PDF) $(TABLE_TEX)
 crop:
 	for x in data/*/*results.pdf; do pdfcrop $$x $$x; done
 
+sharedtask:
+	time python sharedtask.py --dataset duolingo --iter 500 --d 0 --users --items
+	time python sharedtask.py --dataset duolingo --iter 500 --d 0 --users --items --item_wins --item_fails
+
 dodo:
 	python fm.py --dataset assistments0 --iter 500 --d 1 --users --items
 	python fm.py --dataset assistments0 --iter 500 --d 5 --users --items  # MIRT
