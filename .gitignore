@@ -68,3 +68,9 @@ target/
 *.ckpt.*
 *.zip
 checkpoint
+*.pickle
+*.make
+
+*.pdf
+*.aux
+diagram.tex

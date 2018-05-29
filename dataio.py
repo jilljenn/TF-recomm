@@ -36,11 +36,10 @@ def get_config(CONFIG_FILE):
 
 def read_process(filename, sep="\t"):
     # col_names = ["user", "item", "outcome"]
-    col_names = ["user", "item", "outcome", "wins", "fails"]
+    # col_names = ["user", "item", "outcome", "wins", "fails"]
+    col_names = ["users", "items", "speech", "outcome", "wins", "fails"]
     df = pd.read_csv(filename, sep=sep, header=None, names=col_names, engine='python')
-    # df["user"] -= 1
-    # df["item"] -= 1
-    for col in {"user", "item"}:
+    for col in {"users", "items", "speech"}:
         df[col] = df[col].astype(np.int32)
     df["outcome"] = df["outcome"].astype(np.float32)
     return df

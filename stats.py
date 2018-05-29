@@ -10,7 +10,7 @@ import os
 data = defaultdict(list)
 values = {}
 for filename in glob.glob('data/*/*'):
-    if 'mangaki' in filename or '0/' not in filename:
+    if not 'duolingo' in filename and not 'reverse' in filename:
         continue
     dataset_name = filename.split('/')[1][:-1]
     if filename.endswith('qmatrix.npz'):
@@ -51,4 +51,4 @@ ds['Items'] = ds['Items'].astype(np.int32)
 ds.to_csv('/tmp/datasets.csv', index=False)
 ds.to_latex('/tmp/datasets.tex', index=False)
 os.system('cat /tmp/datasets.csv')
-os.system('cp /tmp/datasets.tex {:s}'.format(ARTICLE_FOLDER))
+# os.system('cp /tmp/datasets.tex {:s}'.format(ARTICLE_FOLDER))

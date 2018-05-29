@@ -1,0 +1,35 @@
+\documentclass{standalone}
+\usepackage{booktabs,multicol,multirow}
+
+\begin{document}
+
+\begin{tabular}{cc c ccc c ccc c ccc c ccc }
+\toprule
+  \multicolumn{2}{c}{Users}  & & \multicolumn{3}{c}{Items} & & \multicolumn{3}{c}{Skills}  & & \multicolumn{3}{c}{Wins}  & &  \multicolumn{3}{c}{Fails}  \\
+\cmidrule{1-2}
+\cmidrule{4-6}
+\cmidrule{8-10}
+\cmidrule{12-14}
+\cmidrule{16-18}
+  1 & 2 & & Q$_1$ & Q$_2$ & Q$_3$ & & KC$_1$ & KC$_2$ & KC$_3$ & & KC$_1$ & KC$_2$ & KC$_3$ & & KC$_1$ & KC$_2$ & KC$_3$\\
+\midrule
+  0 &   1 & &  0 &   1 &   0 &&   1 &   1 &   0 &&   0 &   0 &   0 &&   0 &   0 &   0 \\
+  0 &   1 & &  0 &   1 &   0 &&   1 &   1 &   0 &&   1 &   1 &   0 &&   0 &   0 &   0 \\
+  0 &   1 & &  0 &   1 &   0 &&   1 &   1 &   0 &&   1 &   1 &   0 &&   1 &   1 &   0 \\
+  0 &   1 & &  0 &   0 &   1 &&   0 &   1 &   1 &&   0 &   2 &   0 &&   0 &   1 &   0 \\
+  0 &   1 & &  0 &   0 &   1 &&   0 &   1 &   1 &&   0 &   2 &   0 &&   0 &   2 &   1 \\
+  1 &   0 & &  0 &   1 &   0 &&   1 &   1 &   0 &&   0 &   0 &   0 &&   0 &   0 &   0 \\
+  1 &   0 & &  1 &   0 &   0 &&   0 &   0 &   0 &&   0 &   0 &   0 &&   0 &   0 &   0 \\
+\bottomrule
+\end{tabular}
+\hspace{1mm}
+\begin{tabular}{c}
+\toprule
+\multirow{2}[3]{*}{Outcome} \\[6mm]
+%\midrule
+\midrule
+  1\\0\\1\\0\\1\\1\\0\\
+\bottomrule
+\end{tabular}\\
+
+\end{document}
