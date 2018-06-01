@@ -15,4 +15,4 @@ PREFIX = '' # + 'normalized_'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 ARTICLE_FOLDER = '/Users/jilljenn/code/article/edm2018/'
-LIBFM_PATH = '/Users/jilljenn/code/libfm/bin/'
+# LIBFM_PATH = '/Users/jilljenn/code/libfm/bin/'

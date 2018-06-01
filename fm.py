@@ -1,19 +1,21 @@
-from config import LIBFM_PATH
 import argparse
 from scipy.sparse import lil_matrix, coo_matrix, save_npz, load_npz, hstack, diags
 from sklearn.metrics import roc_auc_score, accuracy_score, log_loss
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import KFold
 import pandas as pd
 import numpy as np
 import os.path
 import dataio
+import time
 import pywFM
 import json
+import sys
 
-
-os.environ['LIBFM_PATH'] = LIBFM_PATH
 
 parser = argparse.ArgumentParser(description='Run Knowledge Tracing Machines')
+parser.add_argument('--base_dir', type=str, nargs='?', default='/home/jj')  # /Users/jilljenn
+parser.add_argument('--libfm', type=str, nargs='?', default='libfm')  # code/libfm
 parser.add_argument('--dataset', type=str, nargs='?', default='dummy')
 parser.add_argument('--d', type=int, nargs='?')
 parser.add_argument('--users', type=bool, nargs='?', const=True, default=False)
@@ -24,8 +26,9 @@ parser.add_argument('--wins', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--fails', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--item_wins', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--item_fails', type=bool, nargs='?', const=True, default=False)
-parser.add_argument('--iter', type=int, nargs='?', default=1000)
+parser.add_argument('--iter', type=int, nargs='?', default=500)
 options = parser.parse_args()
+os.environ['LIBFM_PATH'] = os.path.join(options.base_dir, options.libfm, 'bin')
 DATASET_NAME = options.dataset
 CSV_FOLDER, CSV_ALL, CONFIG_FILE, Q_NPZ, SKILL_WINS, SKILL_FAILS = dataio.build_new_paths(DATASET_NAME)
 
@@ -83,6 +86,7 @@ def df_to_sparse(df, filename):
     return X_fm
 
 
+print(df.head())
 X_fm = df_to_sparse(df, 'X.npz')
 print('Encoding done')
 
@@ -90,28 +94,45 @@ params = {
     'task': 'classification',
     'num_iter': options.iter,
     'rlog': True,
-    'learning_method': 'mcmc'
+    'learning_method': 'mcmc',
+    'k2': options.d
 }
-if options.d > 0:
-    params['k2'] = options.d
 
-# Run experiments
+
+# Run experiments by separating students
 kf = KFold(n_splits=5, shuffle=True)
-for run_id, (i_train, i_test) in enumerate(kf.split(X_fm)):
-    X_train = X_fm[i_train]
-    y_train = df.iloc[i_train]['outcome']
-    X_test = X_fm[i_test]
-    y_test = df.iloc[i_test]['outcome']
+# for run_id, (i_train, i_test) in enumerate(kf.split(X_fm)):
+all_users = df['user'].unique()
+for run_id, (i_user_train, i_user_test) in enumerate(kf.split(all_users)):
+    users_train = all_users[i_user_train]
+    users_test = all_users[i_user_test]
+    df_train = df.query('user in @users_train')
+    df_test = df.query('user in @users_test')
 
-    fm = pywFM.FM(**params)
-    model = fm.run(X_train, y_train, X_test, y_test)
+    X_train = X_fm[df_train.index]
+    y_train = df_train['outcome']
+    X_test = X_fm[df_test.index]
+    y_test = df_test['outcome']
 
-    ACC = accuracy_score(y_test, np.round(model.predictions))
-    print('accuracy', ACC)
-    AUC = roc_auc_score(y_test, model.predictions)
-    NLL = log_loss(y_test, model.predictions)
+    start = time.time()
+    if options.d == 0:
+        model = LogisticRegression()
+        model.fit(X_train, y_train)
+        print('fit', time.time() - start)
+        y_pred_test = model.predict_proba(X_test)[:, 1]
+    else:
+        fm = pywFM.FM(**params)
+        model = fm.run(X_train, y_train, X_test, y_test)
+        print('fit', time.time() - start)
+        y_pred_test = model.predictions
+        model.rlog.to_csv(os.path.join(EXPERIMENT_FOLDER, str(run_id), 'rlog.csv'))
 
-    model.rlog.to_csv(os.path.join(EXPERIMENT_FOLDER, str(run_id), 'rlog.csv'))
+    ACC = accuracy_score(y_test, np.round(y_pred_test))
+    print('acc', ACC)
+    AUC = roc_auc_score(y_test, y_pred_test)
+    print('auc', AUC)
+    NLL = log_loss(y_test, y_pred_test)
+
     with open(os.path.join(EXPERIMENT_FOLDER, str(run_id), 'results.json'), 'w') as f:
         f.write(json.dumps({
             'args': experiment_args,
