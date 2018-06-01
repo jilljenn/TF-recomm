@@ -6,7 +6,7 @@ all: $(FIGURES_PDF) $(TABLE_TEX)
 	# python fm.py --dataset assistments0 --iter 500 --d 0 --users --items  # IRT
 
 test:
-	python fm.py --base_dir /Users/jilljenn --libfm code/libfm --dataset fraction42 --d 0 --users --items
+	python fm.py --base_dir /Users/jilljenn --libfm code/libfm --dataset assistments42 --d 0 --users --items
 	# python fm.py --dataset berkeley42 --d 0 --skills --wins --fails
 	# python fm.py --dataset berkeley42 --d 0 --items --skills --wins --fails  # PFA + item == Best
 	# python fm.py --dataset berkeley42 --d 0 --users --items --skills --wins --fails
@@ -71,8 +71,7 @@ berkeley0:
 	# python fm.py --dataset berkeley0 --iter 300 --d 1 --users --items --skills --wins --fails --item_wins --item_fails
 
 combine:
-	python combine.py --dataset ecpe0
-	python plot.py --dataset ecpe0
+	python combine.py --datasets assistments42 berkeley42 castor6e42 ecpe42 fraction42 timss200342
 
 dummy:
 	# python fm.py --iter 10 --d 0 --users --items --skills --wins --fails
@@ -117,4 +116,8 @@ bash:
 	python makesh.py --datasets assistments42 berkeley42 castor6e42 ecpe42 fraction42 timss200342 --dimensions 0 5 10 20
 
 push:
-	rsync -avz --progress --partial data/*42 *sh raiden:ktm/data
+	rsync -avz --progress --partial data/*42 raiden:ktm/data
+	rsync -avz --progress --partial run*sh raiden:ktm/scripts
+
+pull:
+	rsync -avz raiden:ktm/data/* data  # --exclude=X.npz --exclude=rlog.csv

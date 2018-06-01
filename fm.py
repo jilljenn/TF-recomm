@@ -58,9 +58,9 @@ for run_id in range(5):
 
 def df_to_sparse(df, filename):
     SPARSE_NPZ = os.path.join(EXPERIMENT_FOLDER, filename)
-    # if os.path.isfile(SPARSE_NPZ):
-    #     X_fm = load_npz(SPARSE_NPZ)
-    #     return X_fm
+    if os.path.isfile(SPARSE_NPZ):  # FIXME: comment to avoid obsolete encodings
+        X_fm = load_npz(SPARSE_NPZ)
+        return X_fm
     X = {}
     nb_events, _ = df.shape
     rows = list(range(nb_events))
@@ -106,16 +106,18 @@ all_users = df['user'].unique()
 for run_id, (i_user_train, i_user_test) in enumerate(kf.split(all_users)):
     users_train = all_users[i_user_train]
     users_test = all_users[i_user_test]
+
     df_train = df.query('user in @users_train')
     df_test = df.query('user in @users_test')
 
-    X_train = X_fm[df_train.index]
+    X_train = X_fm[list(df_train.index)]  # Without "list", takes 24 GB RAM
     y_train = df_train['outcome']
-    X_test = X_fm[df_test.index]
+    X_test = X_fm[list(df_test.index)]
     y_test = df_test['outcome']
 
     start = time.time()
     if options.d == 0:
+        print('fitting...')
         model = LogisticRegression()
         model.fit(X_train, y_train)
         print('fit', time.time() - start)

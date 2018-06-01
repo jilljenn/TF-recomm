@@ -15,9 +15,9 @@ datasets = set()
 for experiment in experiments:
     with open(experiment) as f:
         results = json.load(f)
-    if 'dataset' not in results['args'] or results['args']['dataset'][-1] != '0':
+    if 'dataset' not in results['args'] or results['args']['dataset'][-2:] != '42':  # X42
         continue
-    dataset = results['args']['dataset'][:-1]
+    dataset = os.path.basename(results['args']['dataset'])
     datasets.add(dataset)
     short_legend = results['legends']['short']
     full_legend = results['legends']['full']
@@ -32,7 +32,8 @@ for dataset in datasets:
     extremum = df[dataset].max()
     winners = df.query('abs({:s} - @extremum) <= 0.00011'.format(dataset))
     df.loc[winners.index, dataset] = winners[dataset].map(lambda entry: r'\textbf{{{:.4f}}}'.format(entry))
-df.transpose()[interesting].fillna('--').to_latex(os.path.join(ARTICLE_FOLDER, 'summary.tex'), escape=False)
+# df.transpose()[interesting].fillna('--').to_latex(os.path.join(ARTICLE_FOLDER, 'summary.tex'), escape=False)
+print(df)
 
 for legend in full:
     print(legend)
