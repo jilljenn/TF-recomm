@@ -68,10 +68,10 @@ def df_to_sparse(df, filename):
     X['items'] = coo_matrix(([1] * nb_events, (rows, df['item'])), shape=(nb_events, ITEM_NUM))
     X['skills'] = qmatrix[df['item']]
 
-    item_wins = diags(df['wins'])
-    item_fails = diags(df['fails'])
-    X['item_wins'] = item_wins @ X['items']
-    X['item_fails'] = item_fails @ X['items']
+    X['item_wins'] = X['items'].copy()
+    X['item_wins'].data = df['wins']
+    X['item_fails'] = X['items'].copy()
+    X['item_fails'].data = df['fails']
 
     if skill_wins is not None:
         print('skill wins', skill_wins.shape)
