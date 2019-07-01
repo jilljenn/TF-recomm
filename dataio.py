@@ -21,6 +21,7 @@ def build_new_paths(DATASET_NAME):
     CSV_FOLDER = os.path.join(DATA_FOLDER, DATASET_NAME)
     CONFIG_FILE = os.path.join(CSV_FOLDER, 'config.yml')
     CSV_ALL = os.path.join(CSV_FOLDER, 'all.csv')
+    print(CSV_ALL)
     Q_NPZ = os.path.join(CSV_FOLDER, 'qmatrix.npz')
     SKILL_WINS = os.path.join(CSV_FOLDER, 'skill_wins.npz')
     SKILL_FAILS = os.path.join(CSV_FOLDER, 'skill_fails.npz')
@@ -63,7 +64,7 @@ def get_legend(experiment_args):
     dim = experiment_args['d']
     short = ''
     full = ''
-    agents = ['users', 'items', 'skills', 'attempts', 'wins', 'fails', 'item_wins', 'item_fails']
+    agents = ['users', 'items', 'skills', 'attempts', 'wins', 'fails', 'item_wins', 'item_fails', 'extra']
     active = []
     for agent in agents:
         if experiment_args.get(agent):
@@ -75,12 +76,13 @@ def get_legend(experiment_args):
         prefix = 'IRT: '
     elif set(active) == {'users', 'items'} and dim > 0:
         prefix = 'MIRTb: '
-    elif set(active) == {'users', 'skills', 'attempts'} and dim == 0:
+    elif set(active) == {'skills', 'attempts'} and dim == 0:
         prefix = 'AFM: '
-    elif set(active) == {'users', 'skills', 'wins', 'fails'} and dim == 0:
+    elif set(active) == {'skills', 'wins', 'fails'} and dim == 0:
         prefix = 'PFA: '
     full = prefix + ', '.join(active) + ' d = {:d}'.format(dim)
     latex = prefix + ', '.join(active)#.replace('_', r'\_')
+    print('get_legend', dim, type(dim), dim == 0, set(active), latex)
     return short, full, latex, active
 
 

@@ -14,5 +14,5 @@ DEVICE = "/cpu:0"
 PREFIX = '' # + 'normalized_'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-ARTICLE_FOLDER = '/Users/jilljenn/code/article/edm2018/'
+ARTICLE_FOLDER = '/Users/jilljenn/code/article/ieee-tlt/'
 # LIBFM_PATH = '/Users/jilljenn/code/libfm/bin/'

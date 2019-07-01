@@ -14,8 +14,8 @@ import sys
 
 
 parser = argparse.ArgumentParser(description='Run Knowledge Tracing Machines')
-parser.add_argument('--base_dir', type=str, nargs='?', default='/home/jj')  # /Users/jilljenn
-parser.add_argument('--libfm', type=str, nargs='?', default='libfm')  # code/libfm
+parser.add_argument('--base_dir', type=str, nargs='?', default='/Users/jilljenn')  # 
+parser.add_argument('--libfm', type=str, nargs='?', default='code/libfm')  # code/libfm
 parser.add_argument('--dataset', type=str, nargs='?', default='dummy')
 parser.add_argument('--d', type=int, nargs='?')
 parser.add_argument('--users', type=bool, nargs='?', const=True, default=False)
@@ -26,9 +26,10 @@ parser.add_argument('--wins', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--fails', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--item_wins', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--item_fails', type=bool, nargs='?', const=True, default=False)
+parser.add_argument('--extra', type=bool, nargs='?', const=True, default=False)
 parser.add_argument('--iter', type=int, nargs='?', default=500)
 options = parser.parse_args()
-os.environ['LIBFM_PATH'] = os.path.join(options.base_dir, options.libfm, 'bin')
+os.environ['LIBFM_PATH'] = os.path.join(options.base_dir, options.libfm, 'bin/')
 DATASET_NAME = options.dataset
 CSV_FOLDER, CSV_ALL, CONFIG_FILE, Q_NPZ, SKILL_WINS, SKILL_FAILS = dataio.build_new_paths(DATASET_NAME)
 
@@ -50,6 +51,7 @@ except:
     skill_fails = None
 
 short_legend, full_legend, latex_legend, active_agents = dataio.get_legend(experiment_args)
+
 EXPERIMENT_FOLDER = os.path.join(CSV_FOLDER, short_legend)
 dataio.prepare_folder(EXPERIMENT_FOLDER)
 for run_id in range(5):
@@ -58,9 +60,14 @@ for run_id in range(5):
 
 def df_to_sparse(df, filename):
     SPARSE_NPZ = os.path.join(EXPERIMENT_FOLDER, filename)
-    if os.path.isfile(SPARSE_NPZ):  # FIXME: comment to avoid obsolete encodings
+    BONUS_NPZ = os.path.join(CSV_FOLDER, 'bonus.npz')
+    if os.path.isfile(SPARSE_NPZ) and 'extra' in active_agents:  # FIXME: comment to avoid obsolete encodings
         X_fm = load_npz(SPARSE_NPZ)
-        return X_fm
+        print('X', X_fm.shape)
+        # return X_fm
+        bonus = load_npz(BONUS_NPZ)
+        print('b', bonus.shape)
+        return hstack((X_fm, bonus)).tocsr()
     X = {}
     nb_events, _ = df.shape
     rows = list(range(nb_events))
@@ -81,13 +88,17 @@ def df_to_sparse(df, filename):
         X['wins'] = skill_wins
         X['fails'] = skill_fails
     print([(agent, X[agent].shape) for agent in {'users', 'items', 'skills', 'attempts', 'wins', 'fails'} if agent in X])
-    X_fm = hstack([X[agent] for agent in active_agents]).tocsr()
+    X_fm = hstack([X[agent] for agent in active_agents if agent != 'extra']).tocsr()
     save_npz(SPARSE_NPZ, X_fm)
     return X_fm
 
 
 print(df.head())
 X_fm = df_to_sparse(df, 'X.npz')
+print('DF shape', df.shape)
+print('Xb shape', X_fm.shape)
+y_fm = np.array(df['outcome'])
+# y_fm = np.load(os.path.join(EXPERIMENT_FOLDER, 'y.npy'))
 print('Encoding done')
 
 params = {
@@ -111,22 +122,41 @@ for run_id, (i_user_train, i_user_test) in enumerate(kf.split(all_users)):
     df_test = df.query('user in @users_test')
 
     X_train = X_fm[list(df_train.index)]  # Without "list", takes 24 GB RAM
-    y_train = df_train['outcome']
+    X_train.data = np.nan_to_num(X_train.data)
+    # y_train = df_train['outcome']
+    y_train = y_fm[list(df_train.index)]
     X_test = X_fm[list(df_test.index)]
-    y_test = df_test['outcome']
+    X_test.data = np.nan_to_num(X_test.data)
+    # y_test = df_test['outcome']
+    y_test = y_fm[list(df_test.index)]
+
+    save_npz('/Users/jilljenn/code/vae/data/assistments/X_fm.npz', X_train)
+    save_npz('/Users/jilljenn/code/vae/data/assistments/X_test.npz', X_test)
+    np.save('/Users/jilljenn/code/vae/data/assistments/y_fm.npy', np.array(y_train))
+    np.save('/Users/jilljenn/code/vae/data/assistments/y_test.npy', np.array(y_test))
 
     start = time.time()
     if options.d == 0:
         print('fitting...')
         model = LogisticRegression()
+        assert None not in y_train
+        
+        print(y_train.min())
+        print(y_train.max())
+        print(X_train.data.max())
+        print(X_train.data.min())
         model.fit(X_train, y_train)
+        # print(list(set(y_fm)))
+        # model.fit(X_fm, y_fm)
         print('fit', time.time() - start)
         y_pred_test = model.predict_proba(X_test)[:, 1]
     else:
         fm = pywFM.FM(**params)
         model = fm.run(X_train, y_train, X_test, y_test)
+        # model = fm.run(X_fm, y_fm, X_fm, y_fm)
         print('fit', time.time() - start)
         y_pred_test = model.predictions
+        np.save('vectors-{:d}.npy'.format(options.d), model.pairwise_interactions)
         model.rlog.to_csv(os.path.join(EXPERIMENT_FOLDER, str(run_id), 'rlog.csv'))
 
     ACC = accuracy_score(y_test, np.round(y_pred_test))
